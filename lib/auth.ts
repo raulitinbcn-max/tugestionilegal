@@ -12,6 +12,8 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async signIn({ user, account, profile }) {
+      console.log('[AUTH] signIn called with user:', { email: user.email, name: user.name })
+
       if (!user.email) {
         console.log('[AUTH] No email provided')
         return false
