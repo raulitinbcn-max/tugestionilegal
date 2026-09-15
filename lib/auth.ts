@@ -19,6 +19,12 @@ export const authOptions: NextAuthOptions = {
         return false
       }
 
+      // TEMPORARY: Allow all Google users for debugging
+      console.log('[AUTH] Permitiendo login (debug mode)')
+      return true
+
+      // TODO: Restore whitelist check
+      /*
       try {
         const email = user.email.toLowerCase().trim()
         console.log('[AUTH] Buscando usuario con email:', email)
@@ -50,6 +56,7 @@ export const authOptions: NextAuthOptions = {
         console.error('[AUTH] Error checking user:', error)
         return false
       }
+      */
     },
     async session({ session, user, token }: any) {
       if (session.user && token) {
