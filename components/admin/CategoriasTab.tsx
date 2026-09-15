@@ -90,7 +90,10 @@ export default function CategoriasTab() {
         }),
       })
 
-      if (!response.ok) throw new Error('Error agregando')
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData?.error || `Error: ${response.status}`)
+      }
 
       toast.success('✅ Categoría agregada')
       setNuevaCategoria({
@@ -103,8 +106,9 @@ export default function CategoriasTab() {
         orden: 0,
       })
       await loadCategorias()
-    } catch (error) {
-      toast.error('Error agregando categoría')
+    } catch (error: any) {
+      console.error('Error:', error)
+      toast.error(error?.message || 'Error agregando categoría')
     } finally {
       setSaving(false)
     }

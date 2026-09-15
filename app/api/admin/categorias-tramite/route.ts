@@ -33,9 +33,9 @@ export async function POST(req: NextRequest) {
     })
 
     return NextResponse.json(categoria)
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating categoria:', error)
-    return NextResponse.json({ error: 'Error interno' }, { status: 500 })
+    return NextResponse.json({ error: error?.message || 'Error interno' }, { status: 500 })
   }
 }
 
