@@ -61,6 +61,23 @@ export const authOptions: NextAuthOptions = {
       }
       return token
     },
+    async redirect({ url, baseUrl }) {
+      console.log('[AUTH] Redirect callback:', { url, baseUrl })
+
+      // Si la URL es relativa, usar baseUrl
+      if (url.startsWith('/')) {
+        return `${baseUrl}${url}`
+      }
+
+      // Si es del mismo dominio, permitir
+      if (new URL(url).origin === baseUrl) {
+        return url
+      }
+
+      // Por defecto ir a /admin
+      console.log('[AUTH] Redirigiendo a /admin')
+      return `${baseUrl}/admin`
+    },
   },
   pages: {
     signIn: '/login',
