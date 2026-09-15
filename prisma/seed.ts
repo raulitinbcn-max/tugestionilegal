@@ -1,4 +1,4 @@
-const { PrismaClient } = require('@prisma/client')
+import { PrismaClient } from '@prisma/client'
 
 const db = new PrismaClient()
 
@@ -27,6 +27,38 @@ async function seed() {
       icono: '🇪🇸',
       color: '#ec4899',
       orden: 3,
+    },
+    {
+      clave: 'TRANSPORTE_DGT',
+      codigo: 'DGT-',
+      nombre: 'Conductores y Vehículos',
+      icono: '🚗',
+      color: '#f59e0b',
+      orden: 4,
+    },
+    {
+      clave: 'LABORAL',
+      codigo: 'LAB-',
+      nombre: 'Trámites Laborales',
+      icono: '💼',
+      color: '#8b5cf6',
+      orden: 5,
+    },
+    {
+      clave: 'FISCAL',
+      codigo: 'FIS-',
+      nombre: 'Trámites Fiscales',
+      icono: '💰',
+      color: '#10b981',
+      orden: 6,
+    },
+    {
+      clave: 'OTROS',
+      codigo: 'TR-',
+      nombre: 'Otros Trámites',
+      icono: '📌',
+      color: '#6b7280',
+      orden: 7,
     },
   ]
 
@@ -73,11 +105,8 @@ async function seed() {
 }
 
 seed()
-  .then(() => {
-    console.log('✨ Seed completado')
-    process.exit(0)
-  })
+  .then(() => process.exit(0))
   .catch((e) => {
-    console.error('❌ Error:', e)
+    console.error(e)
     process.exit(1)
   })

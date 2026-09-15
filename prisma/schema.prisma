@@ -7,18 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model UsuarioAutorizado {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  nombre    String?
-  rol       String   @default("usuario")
-  activo    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("usuarios_autorizados")
-}
-
 model Cliente {
   id                String   @id @default(cuid())
   nombreCompleto    String
@@ -156,10 +144,10 @@ model Documento {
   tramiteId         String
   tramite           Tramite  @relation(fields: [tramiteId], references: [id], onDelete: Cascade)
   nombre            String
-  tipoDocumentoId   String?
+  tipoDocumentoId   String?  // FK a TipoDocumento (reemplaza tipoDocumento string)
   tipoDocumento     TipoDocumento? @relation(fields: [tipoDocumentoId], references: [id], onDelete: SetNull)
   driveFileId       String
-  origen            String   @default("manual")
+  origen            String   @default("manual")  // "manual", "generado", "clasificado"
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -266,8 +254,8 @@ model CheckDocumento {
   nombre            String
   descripcion       String?
   orden             Int      @default(0)
-  tipoVencimiento   String?
-  diasCaducidad     Int?
+  tipoVencimiento   String?  // "documento", "requerimiento", "accion"
+  diasCaducidad     Int?     // Días para caducidad
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -282,7 +270,7 @@ model ChecklistItem {
   id                String   @id @default(cuid())
   tramiteId         String
   tramite           Tramite  @relation(fields: [tramiteId], references: [id], onDelete: Cascade)
-  checkDocumentoId  String
+  checkDocumentoId  String   // FK a CheckDocumento (para obtener plantilla)
   checkDocumento    CheckDocumento @relation(fields: [checkDocumentoId], references: [id], onDelete: Cascade)
   documentoId       String?   @unique
   documento         Documento? @relation(fields: [documentoId], references: [id], onDelete: SetNull)
@@ -294,3 +282,16 @@ model ChecklistItem {
   @@index([checkDocumentoId])
   @@map("checklist_items")
 }
+
+model UsuarioAutorizado {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  nombre    String?
+  rol       String   @default("usuario")
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("usuarios_autorizados")
+}
+

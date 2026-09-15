@@ -15,7 +15,7 @@ export default function LoginPage() {
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true)
-    await signIn('google', { redirect: true, callbackUrl: '/admin' })
+    await signIn('google', { redirect: true, callbackUrl: '/dashboard' })
   }
 
   return (
