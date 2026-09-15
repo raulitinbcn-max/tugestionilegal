@@ -9,10 +9,7 @@ function LoginContent() {
   const error = searchParams.get('error')
 
   const handleSignIn = async () => {
-    await signIn('google', {
-      redirect: true,
-      callbackUrl: '/admin'
-    })
+    await signIn('google', { redirect: true })
   }
 
   return (

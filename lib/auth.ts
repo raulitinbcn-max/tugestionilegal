@@ -1,5 +1,4 @@
 import { type NextAuthOptions, type Session } from 'next-auth'
-import { type JWT } from 'next-auth/jwt'
 import GoogleProvider from 'next-auth/providers/google'
 import { PrismaAdapter } from '@next-auth/prisma-adapter'
 import { db } from './db'
@@ -14,7 +13,7 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async signIn({ user, account }) {
+    async signIn({ user }) {
       // Check if user is authorized (whitelist)
       if (!user.email) {
         return false
@@ -25,7 +24,7 @@ export const authOptions: NextAuthOptions = {
       })
 
       if (!authorizedUser || !authorizedUser.activo) {
-        return '/login?error=AccessDenied'
+        return false
       }
 
       return true
@@ -34,16 +33,14 @@ export const authOptions: NextAuthOptions = {
       return session
     },
     async redirect({ url, baseUrl }) {
-      // Redirect to /admin if callback is relative
-      if (url.startsWith('/')) return `${baseUrl}${url}`
-      // Allow callback urls on the same domain
-      if (new URL(url).origin === baseUrl) return url
-      return baseUrl + '/admin'
+      // Always redirect to /admin
+      return `${baseUrl}/admin`
     },
   },
   pages: {
     signIn: '/login',
     error: '/login',
   },
+  trustHost: true,
   secret: process.env.NEXTAUTH_SECRET,
 }
