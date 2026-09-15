@@ -3,6 +3,8 @@ import GoogleProvider from 'next-auth/providers/google'
 import { PrismaAdapter } from '@next-auth/prisma-adapter'
 import { db } from './db'
 
+const baseUrl = process.env.NEXTAUTH_URL || 'https://tugestionilegal-4192.vercel.app'
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(db),
   providers: [
@@ -31,10 +33,6 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session }: { session: Session }) {
       return session
-    },
-    async redirect({ url, baseUrl }) {
-      // Always redirect to /admin
-      return `${baseUrl}/admin`
     },
   },
   pages: {
