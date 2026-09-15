@@ -1,0 +1,296 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model UsuarioAutorizado {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  nombre    String?
+  rol       String   @default("usuario")
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("usuarios_autorizados")
+}
+
+model Cliente {
+  id                String   @id @default(cuid())
+  nombreCompleto    String
+  fechaNacimiento   DateTime?
+  nacionalidad      String?
+  numeroPasaporte   String?
+  direccion         String?
+  codigoPostal      String?
+  poblacion         String?
+  provincia         String?
+  email             String?   @unique
+  telefono          String?
+  profesion         String?
+  situacionActual   String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  tramites          Tramite[]
+
+  @@map("clientes")
+}
+
+model CategoriasTramite {
+  id                String   @id @default(cuid())
+  clave             String   @unique
+  codigo            String   @unique
+  nombre            String
+  descripcion       String?
+  icono             String?
+  color             String?
+  orden             Int      @default(0)
+  createdAt         DateTime @default(now())
+
+  tramites          Tramite[]
+  tiposDocumento    TipoDocumento[]
+
+  @@map("categorias_tramites")
+}
+
+model Tramite {
+  id                String   @id @default(cuid())
+  codigo            String   @unique
+  clienteId         String
+  cliente           Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  tramiteConfigId   String
+  tramiteConfig     TramiteConfiguracion @relation(fields: [tramiteConfigId], references: [id], onDelete: Cascade)
+  categoriaId       String?
+  categoria         CategoriasTramite? @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
+  estado            String   @default("pendiente")
+  honorarios        Float?
+  formaPago         String?
+  suplidos          Float?   @default(0)
+  driveFolderId     String?
+  driveFolderPendiente Boolean @default(false)
+  planoPago         String?  @default("contado")
+  notas             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  documentos        Documento[]
+  documentosGenerados DocumentoGenerado[]
+  historialEstados  HistorialEstado[]
+  facturasProforma  FacturaProforma[]
+  vencimientos      Vencimiento[]
+  tasas             Tasa[]
+  checklistItems    ChecklistItem[]
+
+  @@index([clienteId])
+  @@index([tramiteConfigId])
+  @@map("tramites")
+}
+
+model TramiteConfiguracion {
+  id                String   @id @default(cuid())
+  tipoTramite       String   @unique
+  nombre            String
+  descripcion       String?
+  categoria         String?
+  plantillasDisponibles String?
+  camposRequeridos  String?
+  activo            Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  checkDocumentos   CheckDocumento[]
+  tasasConfiguracion TasaConfiguracion[]
+  plantillas        Plantilla[]
+  tramites          Tramite[]
+
+  @@map("tramites_configuracion")
+}
+
+model TasaConfiguracion {
+  id                String   @id @default(cuid())
+  tramiteConfigId   String
+  tramiteConfig     TramiteConfiguracion @relation(fields: [tramiteConfigId], references: [id], onDelete: Cascade)
+  nombre            String
+  importe           Float
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([tramiteConfigId, nombre])
+  @@index([tramiteConfigId])
+  @@map("tasas_configuracion")
+}
+
+model Tasa {
+  id                String   @id @default(cuid())
+  tramiteId         String
+  tramite           Tramite  @relation(fields: [tramiteId], references: [id], onDelete: Cascade)
+  nombre            String
+  importe           Float
+  createdAt         DateTime @default(now())
+
+  @@map("tasas")
+}
+
+model HistorialEstado {
+  id                String   @id @default(cuid())
+  tramiteId         String
+  tramite           Tramite  @relation(fields: [tramiteId], references: [id], onDelete: Cascade)
+  estadoAnterior    String?
+  estadoNuevo       String
+  usuario           String
+  notas             String?
+  createdAt         DateTime @default(now())
+
+  @@index([tramiteId])
+  @@index([createdAt])
+  @@map("historial_estados")
+}
+
+model Documento {
+  id                String   @id @default(cuid())
+  tramiteId         String
+  tramite           Tramite  @relation(fields: [tramiteId], references: [id], onDelete: Cascade)
+  nombre            String
+  tipoDocumentoId   String?
+  tipoDocumento     TipoDocumento? @relation(fields: [tipoDocumentoId], references: [id], onDelete: SetNull)
+  driveFileId       String
+  origen            String   @default("manual")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  checklistItem     ChecklistItem?
+
+  @@index([tramiteId])
+  @@index([tipoDocumentoId])
+  @@map("documentos")
+}
+
+model TipoDocumento {
+  id                String   @id @default(cuid())
+  nombre            String   @unique
+  descripcion       String?
+  icono             String?
+  color             String?
+  orden             Int      @default(0)
+  categoriaId       String?
+  categoria         CategoriasTramite? @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  documentos        Documento[]
+
+  @@index([categoriaId])
+  @@map("tipos_documento")
+}
+
+model Plantilla {
+  id                String   @id @default(cuid())
+  tipo              String
+  tramiteConfigId   String?
+  tramiteConfig     TramiteConfiguracion? @relation(fields: [tramiteConfigId], references: [id], onDelete: Cascade)
+  nombre            String
+  driveFileId       String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  documentosGenerados DocumentoGenerado[]
+
+  @@index([tramiteConfigId])
+  @@map("plantillas")
+}
+
+model DocumentoGenerado {
+  id                String   @id @default(cuid())
+  tramiteId         String
+  tramite           Tramite  @relation(fields: [tramiteId], references: [id], onDelete: Cascade)
+  plantillaId       String
+  plantilla         Plantilla @relation(fields: [plantillaId], references: [id], onDelete: Cascade)
+  driveFileId       String
+  nombreGenerado    String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([tramiteId])
+  @@index([plantillaId])
+  @@map("documentos_generados")
+}
+
+model FacturaProforma {
+  id                String   @id @default(cuid())
+  tramiteId         String
+  tramite           Tramite  @relation(fields: [tramiteId], references: [id], onDelete: Cascade)
+  numero            String   @unique
+  estado            String   @default("proforma")
+  concepto          String
+  cantidad          Float
+  precioUnitario    Float
+  total             Float
+  driveFileId       String?
+  fechaEmision      DateTime @default(now())
+  fechaVencimiento  DateTime?
+  notas             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("facturas_proforma")
+}
+
+model Vencimiento {
+  id                String   @id @default(cuid())
+  tramiteId         String
+  tramite           Tramite  @relation(fields: [tramiteId], references: [id], onDelete: Cascade)
+  numeroVencimiento Int
+  importe           Float
+  formaPago         String
+  fechaVencimiento  DateTime
+  pagado            Boolean  @default(false)
+  fechaPago         DateTime?
+  notas             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([tramiteId])
+  @@index([pagado])
+  @@map("vencimientos")
+}
+
+model CheckDocumento {
+  id                String   @id @default(cuid())
+  tramiteConfigId   String
+  tramiteConfig     TramiteConfiguracion @relation(fields: [tramiteConfigId], references: [id], onDelete: Cascade)
+  nombre            String
+  descripcion       String?
+  orden             Int      @default(0)
+  tipoVencimiento   String?
+  diasCaducidad     Int?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  checklistItems    ChecklistItem[]
+
+  @@unique([tramiteConfigId, nombre])
+  @@index([tramiteConfigId])
+  @@map("check_documentos")
+}
+
+model ChecklistItem {
+  id                String   @id @default(cuid())
+  tramiteId         String
+  tramite           Tramite  @relation(fields: [tramiteId], references: [id], onDelete: Cascade)
+  checkDocumentoId  String
+  checkDocumento    CheckDocumento @relation(fields: [checkDocumentoId], references: [id], onDelete: Cascade)
+  documentoId       String?   @unique
+  documento         Documento? @relation(fields: [documentoId], references: [id], onDelete: SetNull)
+  recibido          Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([tramiteId])
+  @@index([checkDocumentoId])
+  @@map("checklist_items")
+}
