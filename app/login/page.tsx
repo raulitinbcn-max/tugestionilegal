@@ -9,7 +9,13 @@ function LoginContent() {
   const error = searchParams.get('error')
 
   const handleSignIn = async () => {
-    await signIn('google', { redirect: true })
+    try {
+      console.log('[LOGIN] Iniciando signIn con Google')
+      const result = await signIn('google', { redirect: true })
+      console.log('[LOGIN] Resultado signIn:', result)
+    } catch (error) {
+      console.error('[LOGIN] Error en signIn:', error)
+    }
   }
 
   return (
