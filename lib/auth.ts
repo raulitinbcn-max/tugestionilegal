@@ -74,9 +74,9 @@ export const authOptions: NextAuthOptions = {
         return url
       }
 
-      // Por defecto ir a /admin
-      console.log('[AUTH] Redirigiendo a /admin')
-      return `${baseUrl}/admin`
+      // Por defecto ir al dashboard
+      console.log('[AUTH] Redirigiendo al dashboard')
+      return `${baseUrl}/`
     },
   },
   pages: {
