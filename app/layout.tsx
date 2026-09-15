@@ -1,27 +1,25 @@
 import type { Metadata } from 'next'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { Toaster } from 'react-hot-toast'
+import { Providers } from './providers'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'TuGestiónLegal',
-  description: 'Plataforma de gestión de trámites legales',
+  title: 'TuGestiónLegal - Despacho López-Iglesias',
+  description: 'Aplicación web para la gestión de trámites en Despacho López-Iglesias',
 }
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const session = await getServerSession(authOptions)
-
   return (
     <html lang="es">
-      <body className="bg-gray-50">
-        {/* Main Content */}
-        <main>
+      <body>
+        <Providers>
           {children}
-        </main>
+        </Providers>
+        <Toaster position="top-right" />
       </body>
     </html>
   )

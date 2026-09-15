@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
-import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
+import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
@@ -8,63 +8,66 @@ export const dynamic = 'force-dynamic'
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
-    if (!session) {
-      return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     const usuarios = await db.usuarioAutorizado.findMany({
-      select: {
-        id: true,
-        email: true,
-        nombre: true,
-        rol: true,
-        activo: true,
-        createdAt: true,
-      },
       orderBy: { createdAt: 'desc' },
     })
 
     return NextResponse.json(usuarios)
-  } catch (error: any) {
+  } catch (error) {
+    console.error('Error:', error)
     return NextResponse.json(
-      { error: error.message },
+      { error: 'Error al obtener usuarios' },
       { status: 500 }
     )
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session) {
-      return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    const { email, nombre } = await req.json()
+    const { email, nombre, rol } = await req.json()
 
     if (!email) {
-      return NextResponse.json({ error: 'Email requerido' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Email es requerido' },
+        { status: 400 }
+      )
+    }
+
+    // Verificar si ya existe
+    const existente = await db.usuarioAutorizado.findUnique({
+      where: { email },
+    })
+
+    if (existente) {
+      return NextResponse.json(
+        { error: 'El email ya está registrado' },
+        { status: 400 }
+      )
     }
 
     const usuario = await db.usuarioAutorizado.create({
       data: {
-        email: email.toLowerCase(),
+        email,
         nombre: nombre || null,
-        rol: 'usuario',
+        rol: rol || 'usuario',
         activo: true,
       },
     })
 
     return NextResponse.json(usuario, { status: 201 })
-  } catch (error: any) {
-    if (error.code === 'P2002') {
-      return NextResponse.json(
-        { error: 'El email ya existe' },
-        { status: 400 }
-      )
-    }
+  } catch (error) {
+    console.error('Error:', error)
     return NextResponse.json(
-      { error: error.message },
+      { error: 'Error al crear usuario' },
       { status: 500 }
     )
   }
