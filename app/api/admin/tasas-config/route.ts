@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    const tasas = await db.tasaConfig.findMany()
+    const tasas = await db.tasaConfiguracion.findMany()
     return NextResponse.json(tasas)
   } catch (error) {
     console.error('Error fetching tasas:', error)
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const tasa = await db.tasaConfig.create({
+    const tasa = await db.tasaConfiguracion.create({
       data: body,
     })
 
@@ -47,7 +47,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     const body = await req.json()
-    const tasa = await db.tasaConfig.update({
+    const tasa = await db.tasaConfiguracion.update({
       where: { id: body.id },
       data: body,
     })

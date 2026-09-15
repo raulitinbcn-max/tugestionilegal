@@ -15,7 +15,7 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json()
     const { id, activo } = body
 
-    const tramite = await db.tramiteConfig.update({
+    const tramite = await db.tramiteConfiguracion.update({
       where: { id },
       data: { activo },
     })

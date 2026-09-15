@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    const tramites = await db.tramiteConfig.findMany()
+    const tramites = await db.tramiteConfiguracion.findMany()
     return NextResponse.json(tramites)
   } catch (error) {
     console.error('Error fetching tramites:', error)
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const tramite = await db.tramiteConfig.create({
+    const tramite = await db.tramiteConfiguracion.create({
       data: body,
     })
 
@@ -47,7 +47,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     const body = await req.json()
-    const tramite = await db.tramiteConfig.update({
+    const tramite = await db.tramiteConfiguracion.update({
       where: { id: body.id },
       data: body,
     })

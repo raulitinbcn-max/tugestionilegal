@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    const categorias = await db.categoriaTramite.findMany()
+    const categorias = await db.categoriasTramite.findMany()
     return NextResponse.json(categorias)
   } catch (error) {
     console.error('Error fetching categorias:', error)
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const categoria = await db.categoriaTramite.create({
+    const categoria = await db.categoriasTramite.create({
       data: body,
     })
 
@@ -47,7 +47,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     const body = await req.json()
-    const categoria = await db.categoriaTramite.update({
+    const categoria = await db.categoriasTramite.update({
       where: { id: body.id },
       data: body,
     })
@@ -73,7 +73,7 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'ID requerido' }, { status: 400 })
     }
 
-    await db.categoriaTramite.delete({
+    await db.categoriasTramite.delete({
       where: { id },
     })
 

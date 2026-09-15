@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     // Crear categorías iniciales
     const categorias = await Promise.all(
       CATEGORIAS_INICIALES.map(cat =>
-        db.categoriaTramite.create({
+        db.categoriasTramite.create({
           data: cat,
         })
       )
