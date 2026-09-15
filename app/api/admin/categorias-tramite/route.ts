@@ -35,6 +35,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(categoria)
   } catch (error: any) {
     console.error('Error creating categoria:', error)
+    // Handle unique constraint errors
+    if (error?.code === 'P2002') {
+      const field = error?.meta?.target?.[0] || 'clave'
+      return NextResponse.json({ error: `Ya existe una categoría con este ${field}` }, { status: 400 })
+    }
     return NextResponse.json({ error: error?.message || 'Error interno' }, { status: 500 })
   }
 }

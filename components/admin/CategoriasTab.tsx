@@ -105,9 +105,10 @@ export default function CategoriasTab() {
         color: '#3b82f6',
         orden: 0,
       })
+      setEditingId(null)
       await loadCategorias()
     } catch (error: any) {
-      console.error('Error:', error)
+      console.error('Error:', error?.message || error)
       toast.error(error?.message || 'Error agregando categoría')
     } finally {
       setSaving(false)
