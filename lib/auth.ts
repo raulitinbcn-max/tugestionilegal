@@ -18,11 +18,19 @@ export const authOptions: NextAuthOptions = {
       }
 
       try {
-        const authorizedUser = await db.usuarioAutorizado.findUnique({
-          where: { email: user.email.toLowerCase() },
+        const email = user.email.toLowerCase().trim()
+        console.log('[AUTH] Buscando usuario con email:', email)
+
+        const authorizedUser = await db.usuarioAutorizado.findFirst({
+          where: {
+            email: {
+              equals: email,
+              mode: 'insensitive'
+            }
+          },
         })
 
-        console.log('[AUTH] User lookup:', { email: user.email, found: !!authorizedUser, activo: authorizedUser?.activo })
+        console.log('[AUTH] User lookup:', { email, found: !!authorizedUser, activo: authorizedUser?.activo })
 
         if (!authorizedUser) {
           console.log('[AUTH] User not found in whitelist')
@@ -34,6 +42,7 @@ export const authOptions: NextAuthOptions = {
           return false
         }
 
+        console.log('[AUTH] Usuario autorizado, permitiendo login')
         return true
       } catch (error) {
         console.error('[AUTH] Error checking user:', error)
