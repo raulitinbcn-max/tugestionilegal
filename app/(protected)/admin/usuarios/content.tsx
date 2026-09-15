@@ -12,7 +12,7 @@ interface Usuario {
   createdAt: string
 }
 
-export default function UsuariosPage() {
+export default function UsuariosContent() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
   const [loading, setLoading] = useState(true)
   const [email, setEmail] = useState('')
@@ -96,16 +96,16 @@ export default function UsuariosPage() {
   }
 
   if (loading) {
-    return <div className="p-8">Cargando usuarios...</div>
+    return <div>Cargando usuarios...</div>
   }
 
   return (
-    <div className="p-8 max-w-6xl mx-auto">
-      <h1 className="text-3xl font-bold mb-8">Gestión de Usuarios</h1>
+    <div>
+      <h2 className="text-2xl font-semibold mb-6">Gestión de Usuarios</h2>
 
       {/* Formulario de agregar usuario */}
-      <div className="bg-white rounded-lg shadow p-6 mb-8">
-        <h2 className="text-xl font-semibold mb-4">Agregar nuevo usuario</h2>
+      <div className="bg-gray-50 rounded-lg p-6 mb-8">
+        <h3 className="text-lg font-semibold mb-4">Agregar nuevo usuario</h3>
         <form onSubmit={agregarUsuario} className="flex gap-4 flex-wrap">
           <input
             type="email"
@@ -132,7 +132,7 @@ export default function UsuariosPage() {
       </div>
 
       {/* Tabla de usuarios */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="overflow-hidden rounded-lg border">
         <table className="w-full">
           <thead className="bg-gray-100 border-b">
             <tr>
