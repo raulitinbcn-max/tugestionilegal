@@ -5,7 +5,7 @@ import { authOptions } from './auth'
 let docsClient: ReturnType<typeof google.docs> | null = null
 
 export async function getDocsClient() {
-  const session = await getServerSession(authOptions)
+  const session = (await getServerSession(authOptions)) as any
 
   if (!session?.accessToken) {
     throw new Error('Usuario no autenticado - token de Google no disponible')

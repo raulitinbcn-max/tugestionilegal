@@ -7,7 +7,7 @@ let driveClient: ReturnType<typeof google.drive> | null = null
 export async function getDriveClient(session?: any) {
   // Si no se pasa sesión, intentar obtenerla
   if (!session) {
-    session = await getServerSession(authOptions)
+    session = (await getServerSession(authOptions)) as any
   }
 
   if (!session?.accessToken) {
