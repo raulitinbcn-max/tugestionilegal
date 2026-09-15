@@ -46,13 +46,14 @@ function LoginContent() {
           </div>
         )}
 
-        <button
-          onClick={handleSignIn}
-          className="w-full flex items-center justify-center gap-2 py-3 px-4 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-        >
-          🔐 Iniciar sesión con Google
-        </button>
-
+        <form action="/api/auth/signin/google" method="POST">
+          <button
+            type="submit"
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+          >
+            🔐 Iniciar sesión con Google
+          </button>
+        </form>
 
         <div className="text-center text-xs text-gray-500 pt-4 border-t">
           <p>Created by Alpha Lima Romeo - 2026 (RPC)</p>
