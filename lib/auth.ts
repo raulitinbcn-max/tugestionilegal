@@ -1,4 +1,5 @@
-import { type NextAuthOptions } from 'next-auth'
+import { type NextAuthOptions, type Session } from 'next-auth'
+import { type JWT } from 'next-auth/jwt'
 import GoogleProvider from 'next-auth/providers/google'
 import { PrismaAdapter } from '@next-auth/prisma-adapter'
 import { db } from './db'
@@ -24,10 +25,7 @@ export const authOptions: NextAuthOptions = {
 
       return true
     },
-    async session({ session, user }) {
-      if (session.user) {
-        session.user.id = user.id
-      }
+    async session({ session }: { session: Session }) {
       return session
     },
   },
