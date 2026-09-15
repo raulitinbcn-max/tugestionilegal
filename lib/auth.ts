@@ -1,12 +1,8 @@
 import { type NextAuthOptions, type Session } from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
-import { PrismaAdapter } from '@next-auth/prisma-adapter'
 import { db } from './db'
 
-const baseUrl = process.env.NEXTAUTH_URL || 'https://tugestionilegal-4192.vercel.app'
-
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(db),
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || '',
@@ -15,8 +11,7 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async signIn({ user }) {
-      // Check if user is authorized (whitelist)
+    async signIn({ user, account, profile }) {
       if (!user.email) {
         console.log('[AUTH] No email provided')
         return false
@@ -45,13 +40,25 @@ export const authOptions: NextAuthOptions = {
         return false
       }
     },
-    async session({ session }: { session: Session }) {
+    async session({ session, user, token }: any) {
+      if (session.user && token) {
+        session.user.id = token.sub
+      }
       return session
+    },
+    async jwt({ token, user, account }) {
+      if (user) {
+        token.id = user.id
+      }
+      return token
     },
   },
   pages: {
     signIn: '/login',
     error: '/login',
+  },
+  session: {
+    strategy: 'jwt',
   },
   secret: process.env.NEXTAUTH_SECRET,
 }
