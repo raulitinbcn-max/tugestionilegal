@@ -20,7 +20,7 @@ function LoginContent() {
             TuGestiónLegal
           </h1>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Gestión de Trámites de Extranjería
+            Despacho López-Iglesias
           </p>
         </div>
 
@@ -47,9 +47,6 @@ function LoginContent() {
           🔐 Iniciar sesión con Google
         </button>
 
-        <p className="text-center text-xs text-gray-600">
-          Acceso restringido a gestores autorizados
-        </p>
 
         <div className="text-center text-xs text-gray-500 pt-4 border-t">
           <p>Created by Alpha Lima Romeo - 2026 (RPC)</p>
