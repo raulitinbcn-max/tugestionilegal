@@ -6,10 +6,10 @@ import { authOptions } from '@/lib/auth'
 export const dynamic = 'force-dynamic'
 
 const CATEGORIAS_INICIALES = [
-  { nombre: 'Mercantil', color: '#3b82f6' },
-  { nombre: 'Laboral', color: '#ef4444' },
-  { nombre: 'Civil', color: '#10b981' },
-  { nombre: 'Administrativo', color: '#f59e0b' },
+  { clave: 'mercantil', codigo: 'MER', nombre: 'Mercantil', color: '#3b82f6' },
+  { clave: 'laboral', codigo: 'LAB', nombre: 'Laboral', color: '#ef4444' },
+  { clave: 'civil', codigo: 'CIV', nombre: 'Civil', color: '#10b981' },
+  { clave: 'administrativo', codigo: 'ADM', nombre: 'Administrativo', color: '#f59e0b' },
 ]
 
 export async function POST(req: NextRequest) {
