@@ -18,18 +18,32 @@ export const authOptions: NextAuthOptions = {
     async signIn({ user }) {
       // Check if user is authorized (whitelist)
       if (!user.email) {
+        console.log('[AUTH] No email provided')
         return false
       }
 
-      const authorizedUser = await db.usuarioAutorizado.findUnique({
-        where: { email: user.email },
-      })
+      try {
+        const authorizedUser = await db.usuarioAutorizado.findUnique({
+          where: { email: user.email.toLowerCase() },
+        })
 
-      if (!authorizedUser || !authorizedUser.activo) {
+        console.log('[AUTH] User lookup:', { email: user.email, found: !!authorizedUser, activo: authorizedUser?.activo })
+
+        if (!authorizedUser) {
+          console.log('[AUTH] User not found in whitelist')
+          return false
+        }
+
+        if (!authorizedUser.activo) {
+          console.log('[AUTH] User is inactive')
+          return false
+        }
+
+        return true
+      } catch (error) {
+        console.error('[AUTH] Error checking user:', error)
         return false
       }
-
-      return true
     },
     async session({ session }: { session: Session }) {
       return session
