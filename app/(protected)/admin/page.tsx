@@ -7,6 +7,7 @@ import TramitesConfigTab from '@/components/admin/TramitesConfigTab'
 import TasasConfigTab from '@/components/admin/TasasConfigTab'
 import CheckDocumentosTab from '@/components/admin/CheckDocumentosTab'
 import TiposDocumentoTab from '@/components/admin/TiposDocumentoTab'
+import UsuariosTab from './usuarios-tab'
 
 type ActiveTab = 'tramites' | 'plantillas' | 'tasas' | 'check-documentos' | 'tipos-documento' | 'usuarios'
 
@@ -52,12 +53,7 @@ export default function AdminPage() {
         {activeTab === 'tasas' && <TasasConfigTab />}
         {activeTab === 'check-documentos' && <CheckDocumentosTab />}
         {activeTab === 'tipos-documento' && <TiposDocumentoTab />}
-        {activeTab === 'usuarios' && (
-          <div className="p-8 text-center text-gray-600">
-            <p className="text-lg font-semibold">👥 Gestión de Usuarios</p>
-            <p className="text-sm mt-2">Por implementar</p>
-          </div>
-        )}
+        {activeTab === 'usuarios' && <UsuariosTab />}
       </div>
     </div>
   )
