@@ -28,14 +28,29 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
+
+    // Validate required fields
+    if (!body.tramiteConfigId || !body.nombre || body.importe === undefined) {
+      return NextResponse.json(
+        { error: 'tramiteConfigId, nombre e importe son requeridos' },
+        { status: 400 }
+      )
+    }
+
+    // Ensure importe is a number
+    const data = {
+      ...body,
+      importe: parseFloat(body.importe),
+    }
+
     const tasa = await db.tasaConfiguracion.create({
-      data: body,
+      data,
     })
 
     return NextResponse.json(tasa)
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating tasa:', error)
-    return NextResponse.json({ error: 'Error interno' }, { status: 500 })
+    return NextResponse.json({ error: error?.message || 'Error interno' }, { status: 500 })
   }
 }
 

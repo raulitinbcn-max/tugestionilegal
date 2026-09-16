@@ -28,13 +28,22 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
+
+    // Validate required fields
+    if (!body.tipo || !body.nombre || !body.driveFileId) {
+      return NextResponse.json(
+        { error: 'tipo, nombre y driveFileId son requeridos' },
+        { status: 400 }
+      )
+    }
+
     const plantilla = await db.plantilla.create({
       data: body,
     })
 
     return NextResponse.json(plantilla)
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating plantilla:', error)
-    return NextResponse.json({ error: 'Error interno' }, { status: 500 })
+    return NextResponse.json({ error: error?.message || 'Error interno' }, { status: 500 })
   }
 }

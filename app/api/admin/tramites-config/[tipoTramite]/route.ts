@@ -18,15 +18,33 @@ export async function PUT(
     const body = await req.json()
     const paramValue = params.tipoTramite
 
-    // Try to find by tipoTramite first, then by nombre
-    let whereClause: any = { tipoTramite: paramValue }
+    // Try to find by tipoTramite first (unique field), then by nombre (non-unique)
+    let tramiteId: string | null = null
 
     try {
-      // First try with tipoTramite
-      await db.tramiteConfiguracion.findUniqueOrThrow({ where: whereClause })
+      // First try with tipoTramite (unique)
+      const found = await db.tramiteConfiguracion.findUnique({
+        where: { tipoTramite: paramValue },
+      })
+      if (found) {
+        tramiteId = found.id
+      }
     } catch {
-      // If not found, try with nombre
-      whereClause = { nombre: paramValue }
+      // tipoTramite not found, try by nombre
+    }
+
+    if (!tramiteId) {
+      // Try to find by nombre
+      const found = await db.tramiteConfiguracion.findFirst({
+        where: { nombre: paramValue },
+      })
+      if (found) {
+        tramiteId = found.id
+      }
+    }
+
+    if (!tramiteId) {
+      return NextResponse.json({ error: 'Trámite no encontrado' }, { status: 404 })
     }
 
     // Convert arrays to JSON strings for storage
@@ -41,7 +59,7 @@ export async function PUT(
     }
 
     const tramite = await db.tramiteConfiguracion.update({
-      where: whereClause,
+      where: { id: tramiteId },
       data,
     })
 

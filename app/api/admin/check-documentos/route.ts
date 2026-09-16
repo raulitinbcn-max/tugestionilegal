@@ -28,14 +28,29 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
+
+    // Validate required fields
+    if (!body.tramiteConfigId || !body.nombre) {
+      return NextResponse.json(
+        { error: 'tramiteConfigId y nombre son requeridos' },
+        { status: 400 }
+      )
+    }
+
     const check = await db.checkDocumento.create({
       data: body,
     })
 
     return NextResponse.json(check)
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating check:', error)
-    return NextResponse.json({ error: 'Error interno' }, { status: 500 })
+    if (error?.code === 'P2002') {
+      return NextResponse.json(
+        { error: 'Ya existe un checklist con este nombre para este trámite' },
+        { status: 400 }
+      )
+    }
+    return NextResponse.json({ error: error?.message || 'Error interno' }, { status: 500 })
   }
 }
 

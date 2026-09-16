@@ -28,14 +28,29 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
+
+    // Validate required fields
+    if (!body.nombre) {
+      return NextResponse.json(
+        { error: 'nombre es requerido' },
+        { status: 400 }
+      )
+    }
+
     const tipo = await db.tipoDocumento.create({
       data: body,
     })
 
     return NextResponse.json(tipo)
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating tipo:', error)
-    return NextResponse.json({ error: 'Error interno' }, { status: 500 })
+    if (error?.code === 'P2002') {
+      return NextResponse.json(
+        { error: 'Ya existe un tipo de documento con este nombre' },
+        { status: 400 }
+      )
+    }
+    return NextResponse.json({ error: error?.message || 'Error interno' }, { status: 500 })
   }
 }
 
