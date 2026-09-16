@@ -124,14 +124,17 @@ export default function TramitesConfigTab() {
         body: JSON.stringify(config),
       })
 
-      if (!response.ok) throw new Error('Error al guardar')
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData?.error || 'Error al guardar')
+      }
 
       toast.success('✅ Configuración guardada automáticamente')
       // Recargar datos desde BD para asegurar sincronización
       await loadConfigs()
-    } catch (error) {
-      console.error('Error:', error)
-      toast.error('Error al guardar configuración')
+    } catch (error: any) {
+      console.error('Error:', error?.message || error)
+      toast.error(error?.message || 'Error al guardar configuración')
     }
   }
 
