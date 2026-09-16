@@ -41,22 +41,47 @@ export default function TasasConfigTab() {
   useEffect(() => {
     const loadData = async () => {
       try {
+        // Load categorias
         const categResponse = await fetch('/api/admin/categorias-tramite')
         if (categResponse.ok) {
           const categData = await categResponse.json()
-          setCategorias(categData)
+          setCategorias(Array.isArray(categData) ? categData : [])
         }
 
+        // Load tramites config - convert array to map
         const tramitesResponse = await fetch('/api/admin/tramites-config')
         if (tramitesResponse.ok) {
           const tramitesData = await tramitesResponse.json()
-          setTramitesConfig(tramitesData.configs || {})
+          let tramitesMap: Record<string, TramiteConfig> = {}
+
+          if (Array.isArray(tramitesData)) {
+            tramitesData.forEach((t: any) => {
+              const key = t.tipoTramite || t.nombre
+              tramitesMap[key] = {
+                nombre: t.nombre,
+                descripcion: t.descripcion || '',
+                categoria: t.categoria || '',
+                plantillasDisponibles: t.plantillasDisponibles
+                  ? JSON.parse(t.plantillasDisponibles)
+                  : [],
+                camposRequeridos: t.camposRequeridos
+                  ? JSON.parse(t.camposRequeridos)
+                  : [],
+              }
+            })
+          } else if (tramitesData.configs) {
+            tramitesMap = tramitesData.configs
+          }
+
+          setTramitesConfig(tramitesMap)
         }
 
+        // Load tasas - already grouped by tipoTramite
         const tasasResponse = await fetch('/api/admin/tasas-config')
         if (tasasResponse.ok) {
           const tasasData = await tasasResponse.json()
-          setTasasConfig(tasasData.tasasConfig || {})
+          const tasasMap = tasasData.tasasConfig || {}
+          setTasasConfig(tasasMap)
         }
       } catch (error) {
         console.error('Error cargando datos:', error)

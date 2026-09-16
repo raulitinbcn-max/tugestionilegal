@@ -12,8 +12,33 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    const tasas = await db.tasaConfiguracion.findMany()
-    return NextResponse.json(tasas)
+    // Get all tramites config first
+    const tramites = await db.tramiteConfiguracion.findMany()
+
+    // Get all tasas config
+    const tasas = await db.tasaConfiguracion.findMany({
+      include: { tramiteConfig: true },
+    })
+
+    // Group tasas by tipoTramite
+    const tasasGrouped: Record<string, any[]> = {}
+    tasas.forEach((tasa) => {
+      const tipoTramite = tasa.tramiteConfig?.tipoTramite || 'unknown'
+      if (!tasasGrouped[tipoTramite]) {
+        tasasGrouped[tipoTramite] = []
+      }
+      tasasGrouped[tipoTramite].push({
+        id: tasa.id,
+        nombre: tasa.nombre,
+        importe: tasa.importe,
+        tramiteConfigId: tasa.tramiteConfigId,
+      })
+    })
+
+    return NextResponse.json({
+      tasasConfig: tasasGrouped,
+      tramites: tramites.map(t => ({ tipoTramite: t.tipoTramite, nombre: t.nombre }))
+    })
   } catch (error) {
     console.error('Error fetching tasas:', error)
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })
