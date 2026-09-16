@@ -12,7 +12,22 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    const checks = await db.checkDocumento.findMany()
+    // Support filtering by tramiteConfigId
+    const { searchParams } = new URL(req.url)
+    const tramiteConfigId = searchParams.get('tramiteConfigId')
+
+    let checks
+    if (tramiteConfigId) {
+      checks = await db.checkDocumento.findMany({
+        where: { tramiteConfigId },
+        orderBy: { orden: 'asc' },
+      })
+    } else {
+      checks = await db.checkDocumento.findMany({
+        orderBy: { tramiteConfigId: 'asc', orden: 'asc' },
+      })
+    }
+
     return NextResponse.json(checks)
   } catch (error) {
     console.error('Error fetching checks:', error)
