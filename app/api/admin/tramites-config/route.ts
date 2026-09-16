@@ -28,14 +28,38 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
+
+    // Handle both formats: direct config or nested in 'configs' object
+    const config = body.configs ? Object.values(body.configs)[0] : body
+    const tipoTramite = body.tipoTramite || (body.nombre && body.nombre.toLowerCase().replace(/\s+/g, '-'))
+
+    if (!tipoTramite) {
+      return NextResponse.json({ error: 'tipoTramite es requerido' }, { status: 400 })
+    }
+
+    // Convert arrays to JSON strings
+    const data = {
+      ...config,
+      tipoTramite,
+      plantillasDisponibles: Array.isArray(config.plantillasDisponibles)
+        ? JSON.stringify(config.plantillasDisponibles)
+        : config.plantillasDisponibles,
+      camposRequeridos: Array.isArray(config.camposRequeridos)
+        ? JSON.stringify(config.camposRequeridos)
+        : config.camposRequeridos,
+    }
+
     const tramite = await db.tramiteConfiguracion.create({
-      data: body,
+      data,
     })
 
     return NextResponse.json(tramite)
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating tramite:', error)
-    return NextResponse.json({ error: 'Error interno' }, { status: 500 })
+    if (error?.code === 'P2002') {
+      return NextResponse.json({ error: 'Este tipoTramite ya existe' }, { status: 400 })
+    }
+    return NextResponse.json({ error: error?.message || 'Error interno' }, { status: 500 })
   }
 }
 
