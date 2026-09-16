@@ -60,6 +60,7 @@ export default function PlantillasTab() {
   const loadData = async () => {
     setLoading(true)
     try {
+      // Load plantillas from Google Drive
       const response = await fetch('/api/admin/list-plantillas-drive')
       const data = await response.json()
 
@@ -67,24 +68,47 @@ export default function PlantillasTab() {
         console.warn('Aviso al cargar plantillas de Drive:', data.error)
       }
 
-      setPlantillasDisponibles(data.plantillas || data || [])
+      setPlantillasDisponibles(Array.isArray(data.plantillas) ? data.plantillas : [])
 
+      // Load registered plantillas
       const registradasResponse = await fetch('/api/admin/plantillas-registradas')
       if (registradasResponse.ok) {
         const registradasData = await registradasResponse.json()
-        setPlantillasRegistradas(registradasData)
+        setPlantillasRegistradas(Array.isArray(registradasData) ? registradasData : [])
       }
 
+      // Load categorias
       const categoriasResponse = await fetch('/api/admin/categorias-tramite')
       if (categoriasResponse.ok) {
         const categoriasData = await categoriasResponse.json()
-        setCategorias(categoriasData)
+        setCategorias(Array.isArray(categoriasData) ? categoriasData : [])
       }
 
+      // Load tramites config
       const tramitesResponse = await fetch('/api/admin/tramites-config')
       if (tramitesResponse.ok) {
         const tramitesData = await tramitesResponse.json()
-        setTramitesConfig(tramitesData.configs || {})
+        // Convert array to map
+        let tramitesMap: Record<string, TramiteConfig> = {}
+        if (Array.isArray(tramitesData)) {
+          tramitesData.forEach((t: any) => {
+            const key = t.tipoTramite || t.nombre
+            tramitesMap[key] = {
+              nombre: t.nombre,
+              descripcion: t.descripcion || '',
+              categoria: t.categoria || '',
+              plantillasDisponibles: t.plantillasDisponibles
+                ? JSON.parse(t.plantillasDisponibles)
+                : [],
+              camposRequeridos: t.camposRequeridos
+                ? JSON.parse(t.camposRequeridos)
+                : [],
+            }
+          })
+        } else if (tramitesData.configs) {
+          tramitesMap = tramitesData.configs
+        }
+        setTramitesConfig(tramitesMap)
       }
     } catch (error) {
       console.error('Error cargando:', error)

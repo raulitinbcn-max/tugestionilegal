@@ -14,14 +14,19 @@ export async function GET(req: NextRequest) {
 
     const plantillasFolderId = process.env.DRIVE_FOLDER_PLANTILLAS_ID
     if (!plantillasFolderId) {
+      console.warn('DRIVE_FOLDER_PLANTILLAS_ID no configurado')
       return NextResponse.json({
         plantillas: [],
-        message: 'DRIVE_FOLDER_PLANTILLAS_ID no configurado'
+        message: 'DRIVE_FOLDER_PLANTILLAS_ID no configurado en variables de entorno'
       })
     }
 
+    console.log('[PLANTILLAS] Buscando en carpeta:', plantillasFolderId)
+
     // Listar archivos de Google Docs en la carpeta de plantillas
     const files = await listFiles(plantillasFolderId, "mimeType = 'application/vnd.google-apps.document'")
+
+    console.log('[PLANTILLAS] Encontradas:', files.length, 'documentos')
 
     const plantillas = files.map((file: any) => ({
       id: file.id,
@@ -31,13 +36,15 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       plantillas,
-      count: plantillas.length
+      count: plantillas.length,
+      folderId: plantillasFolderId
     })
   } catch (error: any) {
-    console.error('Error fetching plantillas from drive:', error)
+    console.error('[PLANTILLAS] Error:', error?.message || error)
     return NextResponse.json({
-      error: error?.message || 'Error interno',
-      plantillas: []
-    }, { status: 500 })
+      plantillas: [],
+      error: error?.message || 'Error al conectar con Google Drive',
+      details: error?.message
+    }, { status: 200 })
   }
 }
