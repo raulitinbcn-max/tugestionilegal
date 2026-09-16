@@ -16,7 +16,18 @@ export async function PUT(
     }
 
     const body = await req.json()
-    const tipoTramite = params.tipoTramite
+    const paramValue = params.tipoTramite
+
+    // Try to find by tipoTramite first, then by nombre
+    let whereClause: any = { tipoTramite: paramValue }
+
+    try {
+      // First try with tipoTramite
+      await db.tramiteConfiguracion.findUniqueOrThrow({ where: whereClause })
+    } catch {
+      // If not found, try with nombre
+      whereClause = { nombre: paramValue }
+    }
 
     // Convert arrays to JSON strings for storage
     const data = {
@@ -30,7 +41,7 @@ export async function PUT(
     }
 
     const tramite = await db.tramiteConfiguracion.update({
-      where: { tipoTramite },
+      where: whereClause,
       data,
     })
 
