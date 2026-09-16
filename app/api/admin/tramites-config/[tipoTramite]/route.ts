@@ -18,9 +18,20 @@ export async function PUT(
     const body = await req.json()
     const tipoTramite = params.tipoTramite
 
+    // Convert arrays to JSON strings for storage
+    const data = {
+      ...body,
+      plantillasDisponibles: Array.isArray(body.plantillasDisponibles)
+        ? JSON.stringify(body.plantillasDisponibles)
+        : body.plantillasDisponibles,
+      camposRequeridos: Array.isArray(body.camposRequeridos)
+        ? JSON.stringify(body.camposRequeridos)
+        : body.camposRequeridos,
+    }
+
     const tramite = await db.tramiteConfiguracion.update({
       where: { tipoTramite },
-      data: body,
+      data,
     })
 
     return NextResponse.json(tramite)
