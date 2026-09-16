@@ -48,8 +48,33 @@ export default function TramitesConfigTab() {
       const response = await fetch('/api/admin/tramites-config')
       if (response.ok) {
         const data = await response.json()
-        if (data.configs && Object.keys(data.configs).length > 0) {
-          setConfigs(data.configs)
+
+        // Handle both array and object formats
+        let configsMap: TramitesConfigMap = {}
+
+        if (Array.isArray(data)) {
+          // Convert array to object map using tipoTramite or nombre as key
+          data.forEach((config: any) => {
+            const key = config.tipoTramite || config.nombre
+            configsMap[key] = {
+              nombre: config.nombre,
+              descripcion: config.descripcion || '',
+              categoria: config.categoria || '',
+              plantillasDisponibles: config.plantillasDisponibles
+                ? JSON.parse(config.plantillasDisponibles)
+                : [],
+              camposRequeridos: config.camposRequeridos
+                ? JSON.parse(config.camposRequeridos)
+                : [],
+              activo: config.activo,
+            }
+          })
+        } else if (data.configs) {
+          configsMap = data.configs
+        }
+
+        if (Object.keys(configsMap).length > 0) {
+          setConfigs(configsMap)
         }
       }
     } catch (error) {
@@ -202,16 +227,29 @@ export default function TramitesConfigTab() {
     }))
 
     try {
-      await fetch('/api/admin/tramites-config', {
+      const response = await fetch('/api/admin/tramites-config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ configs: { [nombre]: newConfig } }),
+        body: JSON.stringify({
+          nombre,
+          descripcion: '',
+          categoria: '',
+          plantillasDisponibles: [],
+          camposRequeridos: [],
+        }),
       })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData?.error || 'Error al crear')
+      }
+
       toast.success('✅ Nuevo trámite creado')
       // Recargar datos desde BD
       await loadConfigs()
-    } catch (error) {
-      toast.error('Error al crear trámite')
+    } catch (error: any) {
+      console.error('Error:', error?.message || error)
+      toast.error(error?.message || 'Error al crear trámite')
     }
   }
 
