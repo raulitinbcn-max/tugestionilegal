@@ -19,7 +19,7 @@ export async function PUT(
     const tipoTramite = params.tipoTramite
 
     const tramite = await db.tramiteConfiguracion.update({
-      where: { nombre: tipoTramite },
+      where: { tipoTramite },
       data: body,
     })
 
