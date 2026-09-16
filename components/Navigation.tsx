@@ -28,7 +28,7 @@ export default function Navigation() {
         <p className="text-xs text-gray-400 mt-1">Despacho López-Iglesias</p>
       </div>
 
-      <div className="flex-1 py-6 overflow-y-auto">
+      <div className="flex-1 py-6 overflow-y-auto scrollbar-hide">
         <ul className="space-y-2 px-4">
           {navigationItems.map((item) => {
             // Activar solo si la ruta coincide exactamente o es una subruta directa
