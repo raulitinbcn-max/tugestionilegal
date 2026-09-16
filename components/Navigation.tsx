@@ -22,13 +22,13 @@ export default function Navigation() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   return (
-    <nav className="w-64 bg-gray-900 text-white shadow-lg flex flex-col">
+    <nav className="w-64 h-screen bg-gray-900 text-white shadow-lg flex flex-col overflow-hidden">
       <div className="p-6 border-b border-gray-800">
         <h2 className="text-xl font-bold">TuGestiónLegal</h2>
         <p className="text-xs text-gray-400 mt-1">Despacho López-Iglesias</p>
       </div>
 
-      <div className="flex-1 py-6">
+      <div className="flex-1 py-6 overflow-y-auto">
         <ul className="space-y-2 px-4">
           {navigationItems.map((item) => {
             // Activar solo si la ruta coincide exactamente o es una subruta directa
