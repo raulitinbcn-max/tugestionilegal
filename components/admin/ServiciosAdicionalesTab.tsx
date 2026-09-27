@@ -100,13 +100,12 @@ export default function ServiciosAdicionalesTab() {
     setSaving(true)
     try {
       const { tramiteConfigIds, ...dataToSend } = formData
-      const tramiteConfigId = tramiteConfigIds && tramiteConfigIds.length > 0 ? tramiteConfigIds[0] : null
 
       if (editingId === 'nuevo') {
         const response = await fetch('/api/admin/servicios-adicionales-config', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...dataToSend, tramiteConfigId }),
+          body: JSON.stringify({ ...dataToSend, tramiteConfigIds: tramiteConfigIds || [] }),
         })
 
         if (!response.ok) throw new Error('Error al crear')
@@ -115,7 +114,7 @@ export default function ServiciosAdicionalesTab() {
         const response = await fetch(`/api/admin/servicios-adicionales-config/${editingId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...dataToSend, tramiteConfigId }),
+          body: JSON.stringify({ ...dataToSend, tramiteConfigIds: tramiteConfigIds || [] }),
         })
 
         if (!response.ok) throw new Error('Error al actualizar')
@@ -223,17 +222,22 @@ export default function ServiciosAdicionalesTab() {
                 </td>
                 <td className="px-6 py-3">
                   <select
-                    value={(formData.tramiteConfigIds && formData.tramiteConfigIds[0]) || ''}
-                    onChange={(e) => setFormData({ ...formData, tramiteConfigIds: e.target.value ? [e.target.value] : [] })}
-                    className="px-2 py-1 border border-gray-300 rounded text-sm"
+                    multiple
+                    value={formData.tramiteConfigIds || []}
+                    onChange={(e) => {
+                      const selected = Array.from(e.target.selectedOptions, option => option.value)
+                      setFormData({ ...formData, tramiteConfigIds: selected })
+                    }}
+                    className="px-2 py-1 border border-gray-300 rounded text-sm w-full"
+                    size={3}
                   >
-                    <option value="">Genérico (todos)</option>
                     {tramitesConfig.map((t) => (
                       <option key={t.id} value={t.id}>
                         {t.nombre}
                       </option>
                     ))}
                   </select>
+                  <p className="text-xs text-gray-500 mt-1">Dejar vacío = Genérico</p>
                 </td>
                 <td className="px-6 py-3 text-right">
                   <button
@@ -297,17 +301,22 @@ export default function ServiciosAdicionalesTab() {
                   </td>
                   <td className="px-6 py-3">
                     <select
-                      value={(formData.tramiteConfigIds && formData.tramiteConfigIds[0]) || ''}
-                      onChange={(e) => setFormData({ ...formData, tramiteConfigIds: e.target.value ? [e.target.value] : [] })}
-                      className="px-2 py-1 border border-gray-300 rounded text-sm"
+                      multiple
+                      value={formData.tramiteConfigIds || []}
+                      onChange={(e) => {
+                        const selected = Array.from(e.target.selectedOptions, option => option.value)
+                        setFormData({ ...formData, tramiteConfigIds: selected })
+                      }}
+                      className="px-2 py-1 border border-gray-300 rounded text-sm w-full"
+                      size={3}
                     >
-                      <option value="">Genérico (todos)</option>
                       {tramitesConfig.map((t) => (
                         <option key={t.id} value={t.id}>
                           {t.nombre}
                         </option>
                       ))}
                     </select>
+                    <p className="text-xs text-gray-500 mt-1">Dejar vacío = Genérico</p>
                   </td>
                   <td className="px-6 py-3 text-right">
                     <button

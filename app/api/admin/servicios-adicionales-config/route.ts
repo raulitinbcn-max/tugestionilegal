@@ -57,6 +57,23 @@ export async function POST(req: NextRequest) {
         documentosRequeridos: body.documentosRequeridos || null,
         activo: body.activo !== false,
       },
+    })
+
+    // Si hay tramiteConfigIds (array), crear asignaciones
+    if (body.tramiteConfigIds && Array.isArray(body.tramiteConfigIds) && body.tramiteConfigIds.length > 0) {
+      for (const tramiteConfigId of body.tramiteConfigIds) {
+        await db.servicioAsignado.create({
+          data: {
+            servicioId: servicio.id,
+            tramiteConfigId,
+          },
+        })
+      }
+    }
+
+    // Volver a cargar con asignaciones
+    const servicioConAsignaciones = await db.servicioAdicional.findUnique({
+      where: { id: servicio.id },
       include: {
         asignacionesTramites: {
           include: { tramiteConfig: true },
@@ -64,17 +81,7 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    // Si hay tramiteConfigId, crear asignación
-    if (body.tramiteConfigId) {
-      await db.servicioAsignado.create({
-        data: {
-          servicioId: servicio.id,
-          tramiteConfigId: body.tramiteConfigId,
-        },
-      })
-    }
-
-    return NextResponse.json(servicio, { status: 201 })
+    return NextResponse.json(servicioConAsignaciones, { status: 201 })
   } catch (error) {
     console.error('Error creating servicio adicional:', error)
     return NextResponse.json(
