@@ -12,10 +12,12 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
+    console.log('[tramites-list] GET called, fetching tramites from DB')
     // Get all tramites and return as array with id field
     const tramites = await db.tramiteConfiguracion.findMany({
       orderBy: { nombre: 'asc' },
     })
+    console.log('[tramites-list] Found tramites:', tramites.length)
 
     // Convert to array format that components expect
     const tramitesArray = tramites.map(t => ({

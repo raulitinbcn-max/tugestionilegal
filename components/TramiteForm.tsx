@@ -399,7 +399,9 @@ export default function TramiteForm() {
               required
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              <option value="">Seleccionar tipo...</option>
+              <option value="">
+                {Object.keys(tramitesConfig).length === 0 ? 'Cargando trámites...' : 'Seleccionar tipo...'}
+              </option>
               {Object.entries(tramitesConfig).map(([tipo, config]) => (
                 <option key={tipo} value={tipo}>
                   {config.nombre || tipo}
