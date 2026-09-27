@@ -88,11 +88,36 @@ export default function EditarClientePage() {
     }
   }
 
+  const validateEmail = (email: string): boolean => {
+    return email.includes('@') && email.includes('.')
+  }
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
+    let processedValue = value
+
+    // Validar y formatear teléfono
+    if (name === 'telefono') {
+      if (value.startsWith('+')) {
+        // Si empieza con +, permitir todos los dígitos sin límite
+        processedValue = '+' + value.slice(1).replace(/\D/g, '')
+      } else {
+        // Sin +, limitar a 9 dígitos en bloques de 3
+        const digitos = value.replace(/\D/g, '').slice(0, 9)
+        processedValue = digitos
+          .split('')
+          .reduce((acc, digit, idx) => {
+            if (idx > 0 && idx % 3 === 0) {
+              return acc + ' ' + digit
+            }
+            return acc + digit
+          }, '')
+      }
+    }
+
     const newFormData = {
       ...formData,
-      [name]: value,
+      [name]: processedValue,
     }
 
     setFormData(newFormData)
@@ -134,6 +159,12 @@ export default function EditarClientePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Validar email si está presente
+    if (formData.email && !validateEmail(formData.email)) {
+      toast.error('Email inválido. Debe contener @ y .')
+      return
+    }
 
     // Validar documento antes de enviar
     if (formData.tipoDocumento && formData.numeroDocumento) {
