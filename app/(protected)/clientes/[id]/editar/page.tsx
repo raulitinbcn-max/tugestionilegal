@@ -317,7 +317,13 @@ export default function EditarClientePage() {
                 id="nacionalidad"
                 value={busquedaNacionalidad}
                 onChange={(e) => handleNacionalidadChange(e.target.value)}
-                onFocus={() => setShowPaisesDropdown(true)}
+                onFocus={() => {
+                  setShowPaisesDropdown(true)
+                  // Si está vacío, mostrar todos los países
+                  if (!busquedaNacionalidad) {
+                    setPaisesFiltered(paisesDisponibles)
+                  }
+                }}
                 onBlur={() => setTimeout(() => setShowPaisesDropdown(false), 200)}
                 placeholder="Escribe para buscar..."
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -397,7 +403,13 @@ export default function EditarClientePage() {
                   id="paisDocumento"
                   value={busquedaPaisDocumento}
                   onChange={(e) => handlePaisDocumentoChange(e.target.value)}
-                  onFocus={() => setShowPaisesDropdownDocumento(true)}
+                  onFocus={() => {
+                    setShowPaisesDropdownDocumento(true)
+                    // Si está vacío, mostrar todos los países
+                    if (!busquedaPaisDocumento) {
+                      setPaisesDocumentoFiltered(paisesDisponibles)
+                    }
+                  }}
                   onBlur={() => setTimeout(() => setShowPaisesDropdownDocumento(false), 200)}
                   placeholder="Escribe para buscar..."
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
