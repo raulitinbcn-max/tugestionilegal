@@ -142,7 +142,7 @@ export default async function TramiteDetailPage({
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900">📋 Datos del Trámite</h3>
               <a
-                href={`/tramites/${tramite.id}/factura`}
+                href={`/tramites/${tramite.id}/editar`}
                 className="text-xs px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded transition"
               >
                 Editar
