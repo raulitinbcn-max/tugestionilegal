@@ -13,6 +13,22 @@ interface Tasa {
   importe: number
 }
 
+interface ServicioAdicional {
+  id: string
+  nombre: string
+  precioBase: number
+  porcentajeIVA: number
+  suplicosBase: number
+}
+
+interface ServicioAnadido {
+  id: string
+  nombre: string
+  precioBase: number
+  porcentajeIVA: number
+  suplicosBase: number
+}
+
 interface TramiteOption {
   tipoTramite: string
   nombre: string
@@ -45,9 +61,14 @@ export default function TramiteForm() {
   const [loading, setLoading] = useState(false)
   const [tramitesLoading, setTramitesLoading] = useState(true)
   const [tasas, setTasas] = useState<Tasa[]>([])
+  const [servicios, setServicios] = useState<ServicioAnadido[]>([])
+  const [serviciosDisponibles, setServiciosDisponibles] = useState<ServicioAdicional[]>([])
   const [tramitesOptions, setTramitesOptions] = useState<TramiteOption[]>([])
   const [nuevaTasa, setNuevaTasa] = useState({ nombre: '', importe: '' })
   const [mostrarFormTasa, setMostrarFormTasa] = useState(false)
+  const [servicioSeleccionado, setServicioSeleccionado] = useState('')
+  const [precioServicio, setPrecioServicio] = useState('')
+  const [mostrarFormServicio, setMostrarFormServicio] = useState(false)
 
   const [formData, setFormData] = useState<FormData>({
     nombreCompleto: '',
@@ -83,6 +104,7 @@ export default function TramiteForm() {
   useEffect(() => {
     if (formData.tipoTramite) {
       loadTasas(formData.tipoTramite)
+      loadServiciosDisponibles(formData.tipoTramite)
     }
   }, [formData.tipoTramite])
 
@@ -158,6 +180,27 @@ export default function TramiteForm() {
     }
   }
 
+  const loadServiciosDisponibles = async (tipoTramiteId: string) => {
+    try {
+      const response = await fetch('/api/admin/servicios-adicionales-config')
+      if (response.ok) {
+        const data = await response.json()
+        // Filtrar servicios genéricos o asignados a este tipo de trámite
+        const filtered = data.filter((s: any) => {
+          if (!s.asignacionesTramites || s.asignacionesTramites.length === 0) {
+            return true // Genérico, disponible para todos
+          }
+          return s.asignacionesTramites.some(
+            (a: any) => a.tramiteConfig.id === tipoTramiteId
+          )
+        })
+        setServiciosDisponibles(filtered)
+      }
+    } catch (error) {
+      console.error('Error loading servicios disponibles:', error)
+    }
+  }
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({
@@ -185,6 +228,35 @@ export default function TramiteForm() {
 
   const removeTasa = (id: string) => {
     setTasas(tasas.filter((t) => t.id !== id))
+  }
+
+  const addServicio = () => {
+    if (!servicioSeleccionado) {
+      toast.error('Selecciona un servicio')
+      return
+    }
+
+    const servicio = serviciosDisponibles.find((s) => s.id === servicioSeleccionado)
+    if (!servicio) return
+
+    const precioBase = precioServicio ? parseFloat(precioServicio) : servicio.precioBase
+    const montoIVA = Math.round((precioBase * servicio.porcentajeIVA / 100) * 100) / 100
+    const totalTasa = Math.round((precioBase + montoIVA + servicio.suplicosBase) * 100) / 100
+
+    // Agregar como tasa
+    setTasas([
+      ...tasas,
+      {
+        id: `tasa-${servicioSeleccionado}-${Date.now()}`,
+        nombre: servicio.nombre,
+        importe: totalTasa,
+      },
+    ])
+
+    setMostrarFormServicio(false)
+    setServicioSeleccionado('')
+    setPrecioServicio('')
+    toast.success('✅ Servicio añadido como tasa')
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -512,58 +584,120 @@ export default function TramiteForm() {
           </div>
         )}
 
-        <div className="flex gap-2 mb-4">
-          <button
-            type="button"
-            onClick={() => setMostrarFormTasa(!mostrarFormTasa)}
-            className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition text-sm"
-          >
-            ➕ Agregar Tasa
-          </button>
-        </div>
-
-        {mostrarFormTasa && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 space-y-3">
-            <h3 className="font-semibold text-gray-900 text-sm">Nueva Tasa</h3>
-            <input
-              type="text"
-              value={nuevaTasa.nombre}
-              onChange={(e) => setNuevaTasa({ ...nuevaTasa, nombre: e.target.value })}
-              placeholder="Nombre de tasa"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
-            />
-            <input
-              type="number"
-              value={nuevaTasa.importe}
-              onChange={(e) => setNuevaTasa({ ...nuevaTasa, importe: e.target.value })}
-              step="0.01"
-              placeholder="Importe"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
-            />
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  addTasa()
-                  setMostrarFormTasa(false)
-                }}
-                className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition text-sm"
-              >
-                ✅ Añadir
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setMostrarFormTasa(false)
-                  setNuevaTasa({ nombre: '', importe: '' })
-                }}
-                className="flex-1 px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold rounded-lg transition text-sm"
-              >
-                ✕ Cancelar
-              </button>
-            </div>
+        <div className="space-y-3">
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setMostrarFormTasa(!mostrarFormTasa)}
+              className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition text-sm"
+            >
+              ➕ Agregar Tasa
+            </button>
+            <button
+              type="button"
+              onClick={() => setMostrarFormServicio(!mostrarFormServicio)}
+              className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition text-sm"
+            >
+              ➕ Agregar Servicio Adicional
+            </button>
           </div>
-        )}
+
+          {mostrarFormTasa && (
+            <div className="bg-gray-50 p-4 rounded border border-gray-200 space-y-3">
+              <h3 className="font-semibold text-gray-900 text-sm">Nueva Tasa</h3>
+              <input
+                type="text"
+                value={nuevaTasa.nombre}
+                onChange={(e) => setNuevaTasa({ ...nuevaTasa, nombre: e.target.value })}
+                placeholder="Nombre de tasa"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              />
+              <input
+                type="number"
+                value={nuevaTasa.importe}
+                onChange={(e) => setNuevaTasa({ ...nuevaTasa, importe: e.target.value })}
+                placeholder="Importe"
+                step="0.01"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              />
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    addTasa()
+                    setMostrarFormTasa(false)
+                  }}
+                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition text-sm"
+                >
+                  ✅ Añadir
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMostrarFormTasa(false)
+                    setNuevaTasa({ nombre: '', importe: '' })
+                  }}
+                  className="flex-1 px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold rounded-lg transition text-sm"
+                >
+                  ✕ Cancelar
+                </button>
+              </div>
+            </div>
+          )}
+
+          {mostrarFormServicio && (
+            <div className="bg-gray-50 p-4 rounded border border-gray-200 space-y-3">
+              <h3 className="font-semibold text-gray-900 text-sm">Nuevo Servicio Adicional</h3>
+              <select
+                value={servicioSeleccionado}
+                onChange={(e) => setServicioSeleccionado(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              >
+                <option value="">Seleccionar servicio...</option>
+                {serviciosDisponibles.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.nombre} ({s.precioBase.toFixed(2)}€)
+                  </option>
+                ))}
+              </select>
+
+              {servicioSeleccionado && (
+                <input
+                  type="number"
+                  value={precioServicio}
+                  onChange={(e) => setPrecioServicio(e.target.value)}
+                  step="0.01"
+                  placeholder="Precio (€) - Opcional"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                />
+              )}
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    addServicio()
+                    setMostrarFormServicio(false)
+                  }}
+                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition text-sm"
+                >
+                  ✅ Añadir
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMostrarFormServicio(false)
+                    setServicioSeleccionado('')
+                    setPrecioServicio('')
+                  }}
+                  className="flex-1 px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold rounded-lg transition text-sm"
+                >
+                  ✕ Cancelar
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Resumen de Precios */}
