@@ -82,12 +82,12 @@ export default function TramiteForm() {
     }
   }
 
+  // Load tramites config once when component mounts
   useEffect(() => {
-    console.log('[TramiteForm] useEffect fired')
-    const loadData = async () => {
+    console.log('[TramiteForm] useEffect fired - loading tramites')
+    const loadTramitesConfig = async () => {
       try {
-        console.log('[TramiteForm] Starting load')
-        // Cargar configuración de trámites desde el nuevo endpoint unificado
+        console.log('[TramiteForm] Starting tramites load')
         const configResponse = await fetch('/api/admin/tramites-list')
         console.log('[TramiteForm] configResponse status:', configResponse.status)
         if (configResponse.ok) {
@@ -118,35 +118,45 @@ export default function TramiteForm() {
         } else {
           console.error('[TramiteForm] error loading tramites:', configResponse.status)
         }
-
-        // Cargar datos del cliente si viene clienteId
-        if (clienteId) {
-          const clienteResponse = await fetch(`/api/clientes/${clienteId}`)
-          if (clienteResponse.ok) {
-            const cliente = await clienteResponse.json()
-            setFormData((prev) => ({
-              ...prev,
-              nombreCompleto: cliente.nombreCompleto || '',
-              fechaNacimiento: cliente.fechaNacimiento ? cliente.fechaNacimiento.split('T')[0] : '',
-              nacionalidad: cliente.nacionalidad || '',
-              numeroPasaporte: cliente.numeroPasaporte || '',
-              direccion: cliente.direccion || '',
-              codigoPostal: cliente.codigoPostal || '',
-              poblacion: cliente.poblacion || '',
-              provincia: cliente.provincia || '',
-              email: cliente.email || '',
-              telefono: cliente.telefono || '',
-              situacionActual: cliente.situacionActual || '',
-            }))
-          }
-        }
       } catch (error) {
-        console.error('Error cargando datos:', error)
+        console.error('Error cargando tramites:', error)
       }
     }
 
-    console.log('[TramiteForm] calling loadData()')
-    loadData()
+    loadTramitesConfig()
+  }, [])
+
+  // Load cliente data when clienteId changes
+  useEffect(() => {
+    if (!clienteId) return
+
+    const loadClienteData = async () => {
+      try {
+        console.log('[TramiteForm] Loading cliente data for ID:', clienteId)
+        const clienteResponse = await fetch(`/api/clientes/${clienteId}`)
+        if (clienteResponse.ok) {
+          const cliente = await clienteResponse.json()
+          setFormData((prev) => ({
+            ...prev,
+            nombreCompleto: cliente.nombreCompleto || '',
+            fechaNacimiento: cliente.fechaNacimiento ? cliente.fechaNacimiento.split('T')[0] : '',
+            nacionalidad: cliente.nacionalidad || '',
+            numeroPasaporte: cliente.numeroPasaporte || '',
+            direccion: cliente.direccion || '',
+            codigoPostal: cliente.codigoPostal || '',
+            poblacion: cliente.poblacion || '',
+            provincia: cliente.provincia || '',
+            email: cliente.email || '',
+            telefono: cliente.telefono || '',
+            situacionActual: cliente.situacionActual || '',
+          }))
+        }
+      } catch (error) {
+        console.error('Error cargando datos del cliente:', error)
+      }
+    }
+
+    loadClienteData()
   }, [clienteId])
 
   const addTasa = () => {
