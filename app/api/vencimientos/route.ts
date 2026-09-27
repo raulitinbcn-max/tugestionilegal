@@ -33,13 +33,13 @@ export async function GET(req: NextRequest) {
       }
 
       // Filtro por estado
-      if (estado === 'pendiente') {
+      if (estado === 'pendientes') {
         where.pagado = false
         where.fechaVencimiento = { gte: new Date() }
-      } else if (estado === 'vencido') {
+      } else if (estado === 'vencidos') {
         where.pagado = false
         where.fechaVencimiento = { lt: new Date() }
-      } else if (estado === 'pagado') {
+      } else if (estado === 'pagados') {
         where.pagado = true
       }
 
@@ -48,9 +48,11 @@ export async function GET(req: NextRequest) {
         where.formaPago = formaPago
       }
 
-      // Filtro por rango de fechas
+      // Filtro por rango de fechas (merge con filtro de estado si existe)
       if (fechaDesde || fechaHasta) {
-        where.fechaVencimiento = {}
+        if (!where.fechaVencimiento) {
+          where.fechaVencimiento = {}
+        }
         if (fechaDesde) where.fechaVencimiento.gte = new Date(fechaDesde)
         if (fechaHasta) where.fechaVencimiento.lte = new Date(fechaHasta)
       }
