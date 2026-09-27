@@ -80,14 +80,24 @@ export default function PlantillasTab() {
       const registradasResponse = await fetch('/api/admin/plantillas-registradas')
       if (registradasResponse.ok) {
         const registradasData = await registradasResponse.json()
-        setPlantillasRegistradas(Array.isArray(registradasData) ? registradasData : [])
+        console.log('[PlantillasTab] registradasData:', registradasData, 'isArray:', Array.isArray(registradasData))
+        const registradas = Array.isArray(registradasData) ? registradasData : []
+        setPlantillasRegistradas(registradas)
+      } else {
+        console.warn('[PlantillasTab] Error fetching registradas:', registradasResponse.status)
+        setPlantillasRegistradas([])
       }
 
       // Load categorias
       const categoriasResponse = await fetch('/api/admin/categorias-tramite')
       if (categoriasResponse.ok) {
         const categoriasData = await categoriasResponse.json()
-        setCategorias(Array.isArray(categoriasData) ? categoriasData : [])
+        console.log('[PlantillasTab] categoriasData:', categoriasData, 'isArray:', Array.isArray(categoriasData))
+        const categorias = Array.isArray(categoriasData) ? categoriasData : []
+        setCategorias(categorias)
+      } else {
+        console.warn('[PlantillasTab] Error fetching categorias:', categoriasResponse.status)
+        setCategorias([])
       }
 
       // Load tramites config - use dedicated endpoint for proper format
@@ -111,20 +121,22 @@ export default function PlantillasTab() {
   }
 
   // Agrupar plantillas registradas por nombre (un único tipo de documento por plantilla)
-  const plantillasAgrupadas: PlantillaAgrupada[] = Array.from(
-    plantillasRegistradas.reduce((map, p) => {
-      if (!map.has(p.nombre)) {
-        map.set(p.nombre, {
-          nombre: p.nombre,
-          driveFileId: p.driveFileId,
-          tipo: p.tipo,
-          asociaciones: [],
-        })
-      }
-      map.get(p.nombre)!.asociaciones.push(p)
-      return map
-    }, new Map<string, PlantillaAgrupada>())
-  ).map(([_, v]) => v)
+  const plantillasAgrupadas: PlantillaAgrupada[] = Array.isArray(plantillasRegistradas)
+    ? Array.from(
+        plantillasRegistradas.reduce((map, p) => {
+          if (!map.has(p.nombre)) {
+            map.set(p.nombre, {
+              nombre: p.nombre,
+              driveFileId: p.driveFileId,
+              tipo: p.tipo,
+              asociaciones: [],
+            })
+          }
+          map.get(p.nombre)!.asociaciones.push(p)
+          return map
+        }, new Map<string, PlantillaAgrupada>())
+      ).map(([_, v]) => v)
+    : []
 
   // Combinar plantillas disponibles (de Drive) con asociadas, mostrando todas
   const todasLasPlantillas: PlantillaAgrupada[] = plantillasDisponibles.map((p) => {
