@@ -309,9 +309,19 @@ export default function PlantillasTab() {
 
   return (
     <div className="p-8">
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">📄 Gestión de Plantillas</h2>
-        <p className="text-gray-600 text-sm">Administra las asociaciones entre plantillas de Google Docs y los tipos de trámite.</p>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">📄 Gestión de Plantillas</h2>
+          <p className="text-gray-600 text-sm">Administra las asociaciones entre plantillas de Google Docs y los tipos de trámite.</p>
+        </div>
+        <a
+          href="/admin/plantillas-2"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition text-sm"
+        >
+          ✨ Nueva Versión v2
+        </a>
       </div>
 
       <div className="grid grid-cols-1 gap-6">
