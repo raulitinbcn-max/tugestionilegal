@@ -19,7 +19,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         descripcion: body.descripcion !== undefined ? body.descripcion : undefined,
         precioBase: body.precioBase !== undefined ? parseFloat(body.precioBase) : undefined,
         porcentajeIVA: body.porcentajeIVA !== undefined ? body.porcentajeIVA : undefined,
-        suplicosBase: body.suplicosBase !== undefined ? body.suplicosBase : undefined,
+        suplicosBase: body.suplicosBase !== undefined ? parseFloat(body.suplicosBase) : undefined,
         documentosRequeridos: body.documentosRequeridos !== undefined ? body.documentosRequeridos : undefined,
         activo: body.activo !== undefined ? body.activo : undefined,
       },

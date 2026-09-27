@@ -10,6 +10,7 @@ interface ServicioAdicional {
   precioBase: number
   porcentajeIVA: number
   suplicosBase: number
+  documentosRequeridos?: string
   asignacionesTramites: Array<{
     id: string
     tramiteConfig: {
@@ -72,6 +73,7 @@ export default function ServiciosAdicionalesTab() {
       precioBase: 0,
       porcentajeIVA: 21,
       suplicosBase: 0,
+      documentosRequeridos: '',
       tramiteConfigIds: [],
       activo: true,
     })
@@ -162,6 +164,8 @@ export default function ServiciosAdicionalesTab() {
           <thead className="bg-gray-50 border-b">
             <tr>
               <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Nombre</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Descripción</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Documentos</th>
               <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Precio</th>
               <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">IVA</th>
               <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Suplidos</th>
@@ -174,96 +178,134 @@ export default function ServiciosAdicionalesTab() {
             {servicios.map((servicio) =>
               editingId === servicio.id ? (
                 <tr key={servicio.id} className="bg-blue-50">
-                  <td className="px-6 py-3">
-                    <input
-                      id={`edit-nombre-${servicio.id}`}
-                      name="nombre"
-                      type="text"
-                      value={formData.nombre || ''}
-                      onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                      className="w-full px-2 py-1 border border-gray-300 rounded"
-                    />
-                  </td>
-                  <td className="px-6 py-3">
-                    <input
-                      id={`edit-precioBase-${servicio.id}`}
-                      name="precioBase"
-                      type="number"
-                      step="0.01"
-                      value={formData.precioBase || ''}
-                      onChange={(e) => setFormData({ ...formData, precioBase: parseFloat(e.target.value) })}
-                      className="w-24 px-2 py-1 border border-gray-300 rounded"
-                    />
-                  </td>
-                  <td className="px-6 py-3">
-                    <input
-                      id={`edit-porcentajeIVA-${servicio.id}`}
-                      name="porcentajeIVA"
-                      type="number"
-                      value={formData.porcentajeIVA || 21}
-                      onChange={(e) => setFormData({ ...formData, porcentajeIVA: parseFloat(e.target.value) })}
-                      className="w-16 px-2 py-1 border border-gray-300 rounded"
-                    />
-                  </td>
-                  <td className="px-6 py-3">
-                    <input
-                      id={`edit-suplicosBase-${servicio.id}`}
-                      name="suplicosBase"
-                      type="number"
-                      step="0.01"
-                      value={formData.suplicosBase || ''}
-                      onChange={(e) => setFormData({ ...formData, suplicosBase: parseFloat(e.target.value) })}
-                      className="w-24 px-2 py-1 border border-gray-300 rounded"
-                    />
-                  </td>
-                  <td className="px-6 py-3 text-sm font-semibold">
-                    {calcularTotal(
-                      formData.precioBase || servicio.precioBase,
-                      formData.porcentajeIVA || servicio.porcentajeIVA,
-                      formData.suplicosBase || servicio.suplicosBase
-                    ).toFixed(2)}
-                    €
-                  </td>
-                  <td className="px-6 py-3">
-                    <select
-                      id={`edit-tramites-${servicio.id}`}
-                      name="tramites"
-                      multiple
-                      value={formData.tramiteConfigIds || []}
-                      onChange={(e) => {
-                        const selected = Array.from(e.target.selectedOptions, option => option.value)
-                        setFormData({ ...formData, tramiteConfigIds: selected })
-                      }}
-                      className="px-2 py-1 border border-gray-300 rounded text-sm w-full"
-                      size={3}
-                    >
-                      {tramitesConfig.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.nombre}
-                        </option>
-                      ))}
-                    </select>
-                    <p className="text-xs text-gray-500 mt-1">Dejar vacío = Genérico</p>
-                  </td>
-                  <td className="px-6 py-3 text-right">
-                    <button
-                      onClick={handleGuardar}
-                      disabled={saving}
-                      className="px-3 py-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white text-sm rounded mr-2"
-                    >
-                      ✅
-                    </button>
-                    <button
-                      onClick={handleCancelar}
-                      className="px-3 py-1 bg-gray-300 hover:bg-gray-400 text-gray-800 text-sm rounded"
-                    >
-                      ✕
-                    </button>
+                  <td colSpan={9} className="px-6 py-4">
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Nombre</label>
+                          <input
+                            id={`edit-nombre-${servicio.id}`}
+                            name="nombre"
+                            type="text"
+                            value={formData.nombre || ''}
+                            onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Precio Base (€)</label>
+                          <input
+                            id={`edit-precioBase-${servicio.id}`}
+                            name="precioBase"
+                            type="number"
+                            step="0.01"
+                            value={formData.precioBase || ''}
+                            onChange={(e) => setFormData({ ...formData, precioBase: parseFloat(e.target.value) })}
+                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">IVA (%)</label>
+                          <input
+                            id={`edit-porcentajeIVA-${servicio.id}`}
+                            name="porcentajeIVA"
+                            type="number"
+                            value={formData.porcentajeIVA || 21}
+                            onChange={(e) => setFormData({ ...formData, porcentajeIVA: parseFloat(e.target.value) })}
+                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Suplidos (€)</label>
+                          <input
+                            id={`edit-suplicosBase-${servicio.id}`}
+                            name="suplicosBase"
+                            type="number"
+                            step="0.01"
+                            value={formData.suplicosBase || ''}
+                            onChange={(e) => setFormData({ ...formData, suplicosBase: parseFloat(e.target.value) })}
+                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Total</label>
+                          <div className="px-2 py-1 bg-gray-100 rounded text-sm font-semibold">
+                            {calcularTotal(
+                              formData.precioBase || servicio.precioBase,
+                              formData.porcentajeIVA || servicio.porcentajeIVA,
+                              formData.suplicosBase || servicio.suplicosBase
+                            ).toFixed(2)}€
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Descripción</label>
+                        <textarea
+                          id={`edit-descripcion-${servicio.id}`}
+                          name="descripcion"
+                          value={formData.descripcion || ''}
+                          onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
+                          rows={2}
+                          className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Documentos Requeridos</label>
+                        <textarea
+                          id={`edit-documentos-${servicio.id}`}
+                          name="documentosRequeridos"
+                          value={formData.documentosRequeridos || ''}
+                          onChange={(e) => setFormData({ ...formData, documentosRequeridos: e.target.value })}
+                          rows={2}
+                          className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Asignar a Trámites (vacío = Genérico)</label>
+                        <select
+                          id={`edit-tramites-${servicio.id}`}
+                          name="tramites"
+                          multiple
+                          value={formData.tramiteConfigIds || []}
+                          onChange={(e) => {
+                            const selected = Array.from(e.target.selectedOptions, option => option.value)
+                            setFormData({ ...formData, tramiteConfigIds: selected })
+                          }}
+                          className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                          size={3}
+                        >
+                          {tramitesConfig.map((t) => (
+                            <option key={t.id} value={t.id}>
+                              {t.nombre}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="flex gap-2 pt-2">
+                        <button
+                          onClick={handleGuardar}
+                          disabled={saving}
+                          className="px-3 py-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white text-sm rounded"
+                        >
+                          ✅ Guardar
+                        </button>
+                        <button
+                          onClick={handleCancelar}
+                          className="px-3 py-1 bg-gray-300 hover:bg-gray-400 text-gray-800 text-sm rounded"
+                        >
+                          ✕ Cancelar
+                        </button>
+                      </div>
+                    </div>
                   </td>
                 </tr>
               ) : (
                 <tr key={servicio.id}>
                   <td className="px-6 py-3 text-gray-900 font-medium">{servicio.nombre}</td>
+                  <td className="px-6 py-3 text-sm text-gray-600 max-w-xs truncate">{servicio.descripcion || '-'}</td>
+                  <td className="px-6 py-3 text-sm text-gray-600 max-w-xs truncate">{servicio.documentosRequeridos || '-'}</td>
                   <td className="px-6 py-3">{servicio.precioBase}€</td>
                   <td className="px-6 py-3">{servicio.porcentajeIVA}%</td>
                   <td className="px-6 py-3">{servicio.suplicosBase}€</td>
@@ -333,6 +375,33 @@ export default function ServiciosAdicionalesTab() {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg"
               />
             </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+              <textarea
+                id="nuevo-descripcion-panel"
+                name="descripcion"
+                value={formData.descripcion || ''}
+                onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
+                placeholder="Detalles sobre este servicio"
+                rows={3}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Documentos Requeridos</label>
+              <textarea
+                id="nuevo-documentos-panel"
+                name="documentosRequeridos"
+                value={formData.documentosRequeridos || ''}
+                onChange={(e) => setFormData({ ...formData, documentosRequeridos: e.target.value })}
+                placeholder="Ej: DNI, Certificado de empadronamiento, Comprobante de domicilio"
+                rows={3}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+              />
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Precio Base (€) *</label>
@@ -359,6 +428,7 @@ export default function ServiciosAdicionalesTab() {
                 />
               </div>
             </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Suplidos (€)</label>
               <input
@@ -372,8 +442,10 @@ export default function ServiciosAdicionalesTab() {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg"
               />
             </div>
+
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Asignar a Trámites (vacío = Genérico)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Asociar a Trámites</label>
+              <p className="text-xs text-gray-500 mb-2">Dejar vacío = Servicio Genérico</p>
               <select
                 id="nuevo-tramites-panel"
                 name="tramites"
@@ -393,6 +465,7 @@ export default function ServiciosAdicionalesTab() {
                 ))}
               </select>
             </div>
+
             <div className="pt-4 flex gap-3">
               <button
                 onClick={handleGuardar}

@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
         descripcion: body.descripcion || null,
         precioBase: parseFloat(body.precioBase),
         porcentajeIVA: body.porcentajeIVA || 21,
-        suplicosBase: body.suplicosBase || 0,
+        suplicosBase: parseFloat(body.suplicosBase) || 0,
         documentosRequeridos: body.documentosRequeridos || null,
         activo: body.activo !== false,
       },
