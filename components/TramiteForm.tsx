@@ -113,8 +113,7 @@ export default function TramiteForm() {
             }))
           }
         } else {
-          const errorData = await configResponse.text()
-          console.error('TramiteForm error loading tramites:', configResponse.status, errorData)
+          console.error('TramiteForm error loading tramites:', configResponse.status)
         }
 
         // Cargar datos del cliente si viene clienteId
