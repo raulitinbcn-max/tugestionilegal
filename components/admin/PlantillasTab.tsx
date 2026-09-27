@@ -84,31 +84,12 @@ export default function PlantillasTab() {
         setCategorias(Array.isArray(categoriasData) ? categoriasData : [])
       }
 
-      // Load tramites config
-      const tramitesResponse = await fetch('/api/admin/tramites-config')
+      // Load tramites config - use dedicated endpoint for proper format
+      const tramitesResponse = await fetch('/api/admin/tramites-list')
       if (tramitesResponse.ok) {
         const tramitesData = await tramitesResponse.json()
-        // Convert array to map
-        let tramitesMap: Record<string, TramiteConfig> = {}
-        if (Array.isArray(tramitesData)) {
-          tramitesData.forEach((t: any) => {
-            const key = t.tipoTramite || t.nombre
-            tramitesMap[key] = {
-              nombre: t.nombre,
-              descripcion: t.descripcion || '',
-              categoria: t.categoria || '',
-              plantillasDisponibles: t.plantillasDisponibles
-                ? JSON.parse(t.plantillasDisponibles)
-                : [],
-              camposRequeridos: t.camposRequeridos
-                ? JSON.parse(t.camposRequeridos)
-                : [],
-            }
-          })
-        } else if (tramitesData.configs) {
-          tramitesMap = tramitesData.configs
-        }
-        setTramitesConfig(tramitesMap)
+        // Use the tramitesMap from endpoint, already properly formatted
+        setTramitesConfig(tramitesData.tramitesMap || {})
       }
     } catch (error) {
       console.error('Error cargando:', error)

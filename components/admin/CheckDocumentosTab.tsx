@@ -53,29 +53,10 @@ export default function CheckDocumentosTab() {
 
   const loadTramitesConfig = async () => {
     try {
-      const response = await fetch('/api/admin/tramites-config')
+      const response = await fetch('/api/admin/tramites-list')
       if (response.ok) {
         const data = await response.json()
-
-        // Handle array format from API
-        let tramitesArray: TramiteConfig[] = []
-        if (Array.isArray(data)) {
-          tramitesArray = data.map((t: any) => ({
-            id: t.id,
-            tipoTramite: t.tipoTramite,
-            nombre: t.nombre,
-            descripcion: t.descripcion,
-            categoria: t.categoria,
-          }))
-        } else if (data.configs && data.configIds) {
-          tramitesArray = Object.entries(data.configs).map(([tipoTramite, config]: [string, any]) => ({
-            id: data.configIds[tipoTramite],
-            tipoTramite,
-            nombre: config.nombre,
-            descripcion: config.descripcion,
-            categoria: config.categoria,
-          }))
-        }
+        const tramitesArray = data.tramites || []
 
         setTramitesConfig(tramitesArray)
         if (tramitesArray.length > 0 && !selectedTramiteConfigId) {

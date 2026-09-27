@@ -48,30 +48,20 @@ export default function TasasConfigTab() {
           setCategorias(Array.isArray(categData) ? categData : [])
         }
 
-        // Load tramites config - convert array to map
-        const tramitesResponse = await fetch('/api/admin/tramites-config')
+        // Load tramites config - use dedicated endpoint
+        const tramitesResponse = await fetch('/api/admin/tramites-list')
         if (tramitesResponse.ok) {
           const tramitesData = await tramitesResponse.json()
-          let tramitesMap: Record<string, TramiteConfig> = {}
+          const tramitesArray = tramitesData.tramites || []
+          const tramitesMap: Record<string, TramiteConfig> = {}
 
-          if (Array.isArray(tramitesData)) {
-            tramitesData.forEach((t: any) => {
-              const key = t.tipoTramite || t.nombre
-              tramitesMap[key] = {
-                nombre: t.nombre,
-                descripcion: t.descripcion || '',
-                categoria: t.categoria || '',
-                plantillasDisponibles: t.plantillasDisponibles
-                  ? JSON.parse(t.plantillasDisponibles)
-                  : [],
-                camposRequeridos: t.camposRequeridos
-                  ? JSON.parse(t.camposRequeridos)
-                  : [],
-              }
-            })
-          } else if (tramitesData.configs) {
-            tramitesMap = tramitesData.configs
-          }
+          tramitesArray.forEach((t: any) => {
+            tramitesMap[t.tipoTramite] = {
+              nombre: t.nombre,
+              descripcion: t.descripcion || '',
+              categoria: t.categoria || '',
+            }
+          })
 
           setTramitesConfig(tramitesMap)
         }
