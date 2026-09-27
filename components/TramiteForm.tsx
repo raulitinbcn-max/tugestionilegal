@@ -39,6 +39,8 @@ interface FormData {
   nombreCompleto: string
   fechaNacimiento: string
   nacionalidad: string
+  tipoDocumento: string
+  numeroDocumento: string
   numeroPasaporte: string
   direccion: string
   codigoPostal: string
@@ -357,14 +359,36 @@ export default function TramiteForm() {
             <label htmlFor="numeroPasaporte" className="block text-sm font-medium text-gray-700 mb-1">
               Tipo, País y Número de Documento
             </label>
-            <input
-              type="text"
-              id="numeroPasaporte"
-              name="numeroPasaporte"
-              value={formData.numeroPasaporte}
+            {/* Tipo de Documento */}
+            <select
+              id="tipoDocumento"
+              name="tipoDocumento"
+              value={formData.tipoDocumento || ''}
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Ej: Pasaporte Colombiano CC-1234567890"
+            >
+              <option value="">Tipo de Documento</option>
+              <option value="DNI">DNI</option>
+              <option value="NIF/CIF">NIF/CIF</option>
+              <option value="NIE">NIE</option>
+              <option value="Pasaporte">Pasaporte</option>
+              <option value="Otro">Otro</option>
+            </select>
+          </div>
+
+          {/* Número de Documento */}
+          <div>
+            <label htmlFor="numeroDocumento" className="block text-sm font-medium text-gray-700 mb-1">
+              Número de Documento
+            </label>
+            <input
+              type="text"
+              id="numeroDocumento"
+              name="numeroDocumento"
+              value={formData.numeroDocumento || ''}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Ej: 12345678X"
             />
           </div>
 
