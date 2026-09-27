@@ -462,9 +462,9 @@ export default function TramiteForm() {
         </div>
       </div>
 
-      {/* Tasas y Suplidos */}
+      {/* Suplidos */}
       <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">💰 Tasas y Suplidos</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">💰 Suplidos</h2>
 
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -530,7 +530,7 @@ export default function TramiteForm() {
       {/* Resumen de Precios */}
       <div className="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-300 rounded-lg p-6">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">📊 Resumen de Precios</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <div className="bg-white rounded p-3">
             <p className="text-xs text-gray-600">Honorarios</p>
             <p className="text-lg font-bold text-gray-900">{formatEuro(honorarios)}</p>
@@ -540,7 +540,11 @@ export default function TramiteForm() {
             <p className="text-lg font-bold text-gray-900">{formatEuro(iva)}</p>
           </div>
           <div className="bg-white rounded p-3">
-            <p className="text-xs text-gray-600">Tasas</p>
+            <p className="text-xs text-gray-600">Servicios</p>
+            <p className="text-lg font-bold text-gray-900">{formatEuro(0)}</p>
+          </div>
+          <div className="bg-white rounded p-3">
+            <p className="text-xs text-gray-600">Suplidos</p>
             <p className="text-lg font-bold text-gray-900">{formatEuro(totalTasas)}</p>
           </div>
           <div className="bg-blue-600 rounded p-3">
