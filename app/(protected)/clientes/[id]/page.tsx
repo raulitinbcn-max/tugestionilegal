@@ -59,8 +59,20 @@ export default async function ClienteDetailPage({
                 <dd className="text-sm text-gray-900 mt-1">{cliente.nacionalidad || '—'}</dd>
               </div>
               <div>
-                <dt className="text-sm font-medium text-gray-600">Pasaporte</dt>
-                <dd className="text-sm text-gray-900 mt-1">{cliente.numeroPasaporte || '—'}</dd>
+                <dt className="text-sm font-medium text-gray-600">📄 Documento</dt>
+                <dd className="text-sm text-gray-900 mt-1">
+                  {cliente.tipoDocumento && cliente.numeroDocumento ? (
+                    <>
+                      {cliente.tipoDocumento}
+                      {cliente.paisDocumento && ` (${cliente.paisDocumento})`}
+                      {cliente.tipoOtroDocumento && ` - ${cliente.tipoOtroDocumento}`} {cliente.numeroDocumento}
+                    </>
+                  ) : cliente.numeroPasaporte ? (
+                    <>Pasaporte {cliente.numeroPasaporte}</>
+                  ) : (
+                    '—'
+                  )}
+                </dd>
               </div>
               <div>
                 <dt className="text-sm font-medium text-gray-600">Fecha de Nacimiento</dt>
