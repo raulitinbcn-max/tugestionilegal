@@ -34,6 +34,7 @@ interface ServicioAnadido {
 interface TramiteEditData {
   tramiteConfigId: string
   honorarios: string
+  porcentajeIVA: string
   formaPago: string
   suplidos: string
   notas: string
@@ -122,6 +123,7 @@ export default function EditarTramitePage() {
       setFormData({
         tramiteConfigId: tramite.tramiteConfigId || '',
         honorarios: tramite.honorarios?.toString() || '',
+        porcentajeIVA: '21',
         formaPago: tramite.formaPago || '',
         suplidos: tramite.suplidos?.toString() || '',
         notas: tramite.notas || '',
@@ -279,10 +281,11 @@ export default function EditarTramitePage() {
   if (loading) return <div className="p-8">Cargando...</div>
 
   const honorarios = parseFloat(formData.honorarios) || 0
+  const porcentajeIVA = parseFloat(formData.porcentajeIVA) || 21
   const totalServicios = servicios.reduce((sum, s) => sum + s.precioBase, 0)
   const totalSuplidos = tasas.reduce((sum, t) => sum + t.importe, 0)
   const subtotal = honorarios + totalServicios
-  const iva = subtotal * 0.21
+  const iva = subtotal * (porcentajeIVA / 100)
   const total = subtotal + iva + totalSuplidos
 
   return (
@@ -343,6 +346,21 @@ export default function EditarTramitePage() {
               step="0.01"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">IVA</label>
+            <select
+              name="porcentajeIVA"
+              value={formData.porcentajeIVA}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="0">Exento</option>
+              <option value="4">4%</option>
+              <option value="10">10%</option>
+              <option value="21">21%</option>
+            </select>
           </div>
 
           <div className="md:col-span-2">
@@ -588,7 +606,7 @@ export default function EditarTramitePage() {
             <p className="text-lg font-bold text-gray-900">{formatEuro(totalServicios)}</p>
           </div>
           <div className="bg-white rounded p-3">
-            <p className="text-xs text-gray-600">IVA (21%)</p>
+            <p className="text-xs text-gray-600">IVA</p>
             <p className="text-lg font-bold text-gray-900">{formatEuro(iva)}</p>
           </div>
           <div className="bg-white rounded p-3">

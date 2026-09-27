@@ -33,6 +33,7 @@ interface FormData {
   situacionActual: string
   tipoTramite: string
   honorarios: string
+  porcentajeIVA: string
   formaPago: string
 }
 
@@ -62,6 +63,7 @@ export default function TramiteForm() {
     situacionActual: '',
     tipoTramite: '',
     honorarios: '',
+    porcentajeIVA: '21',
     formaPago: '',
   })
 
@@ -216,9 +218,10 @@ export default function TramiteForm() {
   }
 
   const honorarios = parseFloat(formData.honorarios) || 0
+  const porcentajeIVA = parseFloat(formData.porcentajeIVA) || 21
   const totalSuplidos = tasas.reduce((sum, t) => sum + t.importe, 0)
   const subtotal = honorarios
-  const iva = subtotal * 0.21
+  const iva = subtotal * (porcentajeIVA / 100)
   const total = subtotal + iva + totalSuplidos
 
   return (
@@ -461,6 +464,24 @@ export default function TramiteForm() {
               placeholder="500.00"
             />
           </div>
+
+          <div>
+            <label htmlFor="porcentajeIVA" className="block text-sm font-medium text-gray-700 mb-1">
+              IVA
+            </label>
+            <select
+              id="porcentajeIVA"
+              name="porcentajeIVA"
+              value={formData.porcentajeIVA}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="0">Exento</option>
+              <option value="4">4%</option>
+              <option value="10">10%</option>
+              <option value="21">21%</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -558,7 +579,7 @@ export default function TramiteForm() {
             <p className="text-lg font-bold text-gray-900">{formatEuro(0)}</p>
           </div>
           <div className="bg-white rounded p-3">
-            <p className="text-xs text-gray-600">IVA (21%)</p>
+            <p className="text-xs text-gray-600">IVA</p>
             <p className="text-lg font-bold text-gray-900">{formatEuro(iva)}</p>
           </div>
           <div className="bg-white rounded p-3">
