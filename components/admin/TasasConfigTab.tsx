@@ -117,16 +117,20 @@ export default function TasasConfigTab() {
 
       Object.entries(tasasConfig).forEach(([tipoTramite, tasas]) => {
         const tramite = tramitesConfig[tipoTramite]
-        if (!tramite) return
+        if (!tramite) {
+          console.warn(`Trámite ${tipoTramite} no encontrado en tramitesConfig`, tramitesConfig)
+          return
+        }
 
         // Create a POST for each tasa
         tasas.forEach((tasa) => {
+          console.log(`Guardando tasa ${tasa.nombre} para ${tipoTramite} con tramiteConfigId ${tramite.id}`)
           promises.push(
             fetch('/api/admin/tasas-config', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                tramiteConfigId: tramite?.id,
+                tramiteConfigId: tramite.id,
                 nombre: tasa.nombre,
                 importe: parseFloat(tasa.importe.toString()),
               }),
@@ -135,8 +139,18 @@ export default function TasasConfigTab() {
         })
       })
 
+      if (promises.length === 0) {
+        toast.error('No hay tasas para guardar')
+        setSaving(false)
+        return
+      }
+
       const results = await Promise.all(promises)
-      if (!results.every(r => r.ok)) throw new Error('Error al guardar algunas tasas')
+      const failures = results.filter(r => !r.ok)
+      if (failures.length > 0) {
+        const errorTexts = await Promise.all(failures.map(r => r.text()))
+        throw new Error(`Error al guardar ${failures.length} tasa(s): ${errorTexts.join(', ')}`)
+      }
 
       toast.success('✅ Configuración de tasas guardada')
       await new Promise(r => setTimeout(r, 500)) // Wait before reload
