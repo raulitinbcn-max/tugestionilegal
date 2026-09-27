@@ -215,7 +215,7 @@ export default function EditarTramitePage() {
         },
       ])
 
-      setMostrarModalServicio(false)
+      setMostrarFormServicio(false)
       setServicioSeleccionado('')
       setPrecioServicio('')
       toast.success('✅ Servicio añadido como tasa')
@@ -560,7 +560,7 @@ export default function EditarTramitePage() {
               <button
                 type="button"
                 onClick={() => {
-                  setMostrarModalServicio(false)
+                  setMostrarFormServicio(false)
                   setServicioSeleccionado('')
                   setPrecioServicio('')
                 }}
