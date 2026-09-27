@@ -262,6 +262,14 @@ export default function VencimientosPage() {
                         {v.pagado && ' ✅'}
                       </p>
                     </div>
+                    {!v.pagado && (
+                      <button
+                        onClick={() => router.push(`/registrar-pagos?tramiteId=${tramiteId}&vencimientoId=${v.id}&importe=${v.importe}`)}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition text-sm"
+                      >
+                        💳 Registrar Pago
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -277,7 +285,7 @@ export default function VencimientosPage() {
                     <th className="px-4 py-2 text-left text-gray-700 font-semibold">Fecha Vencimiento</th>
                     <th className="px-4 py-2 text-left text-gray-700 font-semibold">Pagado</th>
                     <th className="px-4 py-2 text-left text-gray-700 font-semibold">Notas</th>
-                    <th className="px-4 py-2">Acción</th>
+                    <th className="px-4 py-2">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -331,13 +339,24 @@ export default function VencimientosPage() {
                           className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
                         />
                       </td>
-                      <td className="px-4 py-2 text-center">
-                        <button
-                          onClick={() => removeVencimiento(idx)}
-                          className="text-red-600 hover:text-red-800 font-semibold"
-                        >
-                          🗑️
-                        </button>
+                      <td className="px-4 py-2">
+                        <div className="flex gap-2 justify-center">
+                          {!v.pagado && (
+                            <button
+                              onClick={() => router.push(`/registrar-pagos?tramiteId=${tramiteId}&vencimientoId=${v.id}&importe=${v.importe}`)}
+                              className="text-blue-600 hover:text-blue-800 font-semibold text-xs px-2 py-1 bg-blue-100 rounded hover:bg-blue-200 transition"
+                              title="Registrar Pago"
+                            >
+                              💳 Pago
+                            </button>
+                          )}
+                          <button
+                            onClick={() => removeVencimiento(idx)}
+                            className="text-red-600 hover:text-red-800 font-semibold"
+                          >
+                            🗑️
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
