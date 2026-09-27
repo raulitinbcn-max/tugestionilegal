@@ -175,6 +175,8 @@ export default function ServiciosAdicionalesTab() {
               <tr className="bg-blue-50">
                 <td className="px-6 py-3">
                   <input
+                    id="nuevo-nombre"
+                    name="nombre"
                     type="text"
                     value={formData.nombre || ''}
                     onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
@@ -184,6 +186,8 @@ export default function ServiciosAdicionalesTab() {
                 </td>
                 <td className="px-6 py-3">
                   <input
+                    id="nuevo-precioBase"
+                    name="precioBase"
                     type="number"
                     step="0.01"
                     value={formData.precioBase || ''}
@@ -194,6 +198,8 @@ export default function ServiciosAdicionalesTab() {
                 </td>
                 <td className="px-6 py-3">
                   <input
+                    id="nuevo-porcentajeIVA"
+                    name="porcentajeIVA"
                     type="number"
                     value={formData.porcentajeIVA || 21}
                     onChange={(e) => setFormData({ ...formData, porcentajeIVA: parseFloat(e.target.value) })}
@@ -202,6 +208,8 @@ export default function ServiciosAdicionalesTab() {
                 </td>
                 <td className="px-6 py-3">
                   <input
+                    id="nuevo-suplicosBase"
+                    name="suplicosBase"
                     type="number"
                     step="0.01"
                     value={formData.suplicosBase || ''}
@@ -222,6 +230,8 @@ export default function ServiciosAdicionalesTab() {
                 </td>
                 <td className="px-6 py-3">
                   <select
+                    id="nuevo-tramites"
+                    name="tramites"
                     multiple
                     value={formData.tramiteConfigIds || []}
                     onChange={(e) => {
@@ -259,6 +269,8 @@ export default function ServiciosAdicionalesTab() {
                 <tr key={servicio.id} className="bg-blue-50">
                   <td className="px-6 py-3">
                     <input
+                      id={`edit-nombre-${servicio.id}`}
+                      name="nombre"
                       type="text"
                       value={formData.nombre || ''}
                       onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
@@ -267,6 +279,8 @@ export default function ServiciosAdicionalesTab() {
                   </td>
                   <td className="px-6 py-3">
                     <input
+                      id={`edit-precioBase-${servicio.id}`}
+                      name="precioBase"
                       type="number"
                       step="0.01"
                       value={formData.precioBase || ''}
@@ -276,6 +290,8 @@ export default function ServiciosAdicionalesTab() {
                   </td>
                   <td className="px-6 py-3">
                     <input
+                      id={`edit-porcentajeIVA-${servicio.id}`}
+                      name="porcentajeIVA"
                       type="number"
                       value={formData.porcentajeIVA || 21}
                       onChange={(e) => setFormData({ ...formData, porcentajeIVA: parseFloat(e.target.value) })}
@@ -284,6 +300,8 @@ export default function ServiciosAdicionalesTab() {
                   </td>
                   <td className="px-6 py-3">
                     <input
+                      id={`edit-suplicosBase-${servicio.id}`}
+                      name="suplicosBase"
                       type="number"
                       step="0.01"
                       value={formData.suplicosBase || ''}
@@ -301,6 +319,8 @@ export default function ServiciosAdicionalesTab() {
                   </td>
                   <td className="px-6 py-3">
                     <select
+                      id={`edit-tramites-${servicio.id}`}
+                      name="tramites"
                       multiple
                       value={formData.tramiteConfigIds || []}
                       onChange={(e) => {
