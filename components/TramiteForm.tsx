@@ -41,6 +41,8 @@ interface FormData {
   nacionalidad: string
   tipoDocumento: string
   numeroDocumento: string
+  paisDocumento?: string
+  tipoOtroDocumento?: string
   numeroPasaporte: string
   direccion: string
   codigoPostal: string
@@ -53,6 +55,12 @@ interface FormData {
   honorarios: string
   porcentajeIVA: string
   formaPago: string
+}
+
+interface Pais {
+  id: string
+  nombre: string
+  codigo?: string
 }
 
 export default function TramiteForm() {
@@ -71,6 +79,13 @@ export default function TramiteForm() {
   const [servicioSeleccionado, setServicioSeleccionado] = useState('')
   const [precioServicio, setPrecioServicio] = useState('')
   const [mostrarFormServicio, setMostrarFormServicio] = useState(false)
+  const [paisesDisponibles, setPaisesDisponibles] = useState<Pais[]>([])
+  const [paisesFiltered, setPaisesFiltered] = useState<Pais[]>([])
+  const [showPaisesDropdown, setShowPaisesDropdown] = useState(false)
+  const [busquedaNacionalidad, setBusquedaNacionalidad] = useState('')
+  const [showPaisesDropdownDocumento, setShowPaisesDropdownDocumento] = useState(false)
+  const [busquedaPaisDocumento, setBusquedaPaisDocumento] = useState('')
+  const [paisesDocumentoFiltered, setPaisesDocumentoFiltered] = useState<Pais[]>([])
 
   const [formData, setFormData] = useState<FormData>({
     nombreCompleto: '',
@@ -92,10 +107,25 @@ export default function TramiteForm() {
     formaPago: '',
   })
 
-  // Load tramites list on mount
+  // Load tramites list and paises on mount
   useEffect(() => {
     loadTramites()
+    loadPaises()
   }, [])
+
+  const loadPaises = async () => {
+    try {
+      const response = await fetch('/api/paises')
+      if (response.ok) {
+        const data = await response.json()
+        setPaisesDisponibles(data)
+        setPaisesFiltered(data)
+        setPaisesDocumentoFiltered(data)
+      }
+    } catch (error) {
+      console.error('Error loading paises:', error)
+    }
+  }
 
   // Load cliente data when clienteId changes
   useEffect(() => {
@@ -150,6 +180,10 @@ export default function TramiteForm() {
           nombreCompleto: cliente.nombreCompleto || '',
           fechaNacimiento: cliente.fechaNacimiento ? cliente.fechaNacimiento.split('T')[0] : '',
           nacionalidad: cliente.nacionalidad || '',
+          tipoDocumento: cliente.tipoDocumento || '',
+          numeroDocumento: cliente.numeroDocumento || '',
+          paisDocumento: cliente.paisDocumento || '',
+          tipoOtroDocumento: cliente.tipoOtroDocumento || '',
           numeroPasaporte: cliente.numeroPasaporte || '',
           direccion: cliente.direccion || '',
           codigoPostal: cliente.codigoPostal || '',
@@ -159,6 +193,14 @@ export default function TramiteForm() {
           telefono: cliente.telefono || '',
           situacionActual: cliente.situacionActual || '',
         }))
+        // Establecer búsqueda de nacionalidad si existe
+        if (cliente.nacionalidad) {
+          setBusquedaNacionalidad(cliente.nacionalidad)
+        }
+        // Establecer búsqueda de país del documento si es Pasaporte
+        if (cliente.paisDocumento && cliente.tipoDocumento === 'Pasaporte') {
+          setBusquedaPaisDocumento(cliente.paisDocumento)
+        }
       }
     } catch (error) {
       console.error('Error loading cliente:', error)
@@ -236,6 +278,62 @@ export default function TramiteForm() {
 
   const validateEmail = (email: string): boolean => {
     return email.includes('@') && email.includes('.')
+  }
+
+  const handleNacionalidadChange = (value: string) => {
+    setBusquedaNacionalidad(value)
+    setShowPaisesDropdown(true)
+    setFormData((prev) => ({
+      ...prev,
+      nacionalidad: value,
+    }))
+
+    // Filtrar países según búsqueda
+    if (value.trim()) {
+      const filtered = paisesDisponibles.filter((p) =>
+        p.nombre.toLowerCase().includes(value.toLowerCase())
+      )
+      setPaisesFiltered(filtered)
+    } else {
+      setPaisesFiltered(paisesDisponibles)
+    }
+  }
+
+  const selectNacionalidad = (pais: Pais) => {
+    setFormData((prev) => ({
+      ...prev,
+      nacionalidad: pais.nombre,
+    }))
+    setBusquedaNacionalidad(pais.nombre)
+    setShowPaisesDropdown(false)
+  }
+
+  const handlePaisDocumentoChange = (value: string) => {
+    setBusquedaPaisDocumento(value)
+    setShowPaisesDropdownDocumento(true)
+    setFormData((prev) => ({
+      ...prev,
+      paisDocumento: value,
+    }))
+
+    // Filtrar países según búsqueda
+    if (value.trim()) {
+      const filtered = paisesDisponibles.filter((p) =>
+        p.nombre.toLowerCase().includes(value.toLowerCase())
+      )
+      setPaisesDocumentoFiltered(filtered)
+    } else {
+      setPaisesDocumentoFiltered(paisesDisponibles)
+    }
+  }
+
+  const selectPaisDocumento = (pais: Pais) => {
+    setFormData((prev) => ({
+      ...prev,
+      paisDocumento: pais.nombre,
+    }))
+    setBusquedaPaisDocumento(pais.nombre)
+    setShowPaisesDropdownDocumento(false)
   }
 
   const addTasa = () => {
@@ -374,23 +472,36 @@ export default function TramiteForm() {
             />
           </div>
 
-          <div>
+          <div className="relative">
             <label htmlFor="nacionalidad" className="block text-sm font-medium text-gray-700 mb-1">
               Nacionalidad
             </label>
             <input
               type="text"
               id="nacionalidad"
-              name="nacionalidad"
-              value={formData.nacionalidad}
-              onChange={handleChange}
+              value={busquedaNacionalidad}
+              onChange={(e) => handleNacionalidadChange(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Colombiana"
+              placeholder="Escribir para filtrar..."
             />
+            {showPaisesDropdown && paisesFiltered.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
+                {paisesFiltered.map((pais) => (
+                  <button
+                    key={pais.id}
+                    type="button"
+                    onClick={() => selectNacionalidad(pais)}
+                    className="w-full text-left px-4 py-2 hover:bg-blue-50 text-sm"
+                  >
+                    {pais.nombre}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="md:col-span-2">
-            <label htmlFor="numeroPasaporte" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="tipoDocumento" className="block text-sm font-medium text-gray-700 mb-1">
               Tipo, País y Número de Documento
             </label>
             {/* Tipo de Documento */}
@@ -399,15 +510,64 @@ export default function TramiteForm() {
               name="tipoDocumento"
               value={formData.tipoDocumento || ''}
               onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4"
             >
-              <option value="">Tipo de Documento</option>
+              <option value="">Selecciona Tipo de Documento</option>
               <option value="DNI">DNI</option>
               <option value="NIF/CIF">NIF/CIF</option>
               <option value="NIE">NIE</option>
               <option value="Pasaporte">Pasaporte</option>
               <option value="Otro">Otro</option>
             </select>
+
+            {/* País del Pasaporte - Solo mostrar si Pasaporte está seleccionado */}
+            {formData.tipoDocumento === 'Pasaporte' && (
+              <div className="relative mb-4">
+                <label htmlFor="paisDocumento" className="block text-sm font-medium text-gray-700 mb-1">
+                  País del Pasaporte *
+                </label>
+                <input
+                  type="text"
+                  id="paisDocumento"
+                  value={busquedaPaisDocumento}
+                  onChange={(e) => handlePaisDocumentoChange(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Escribir para filtrar..."
+                />
+                {showPaisesDropdownDocumento && paisesDocumentoFiltered.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
+                    {paisesDocumentoFiltered.map((pais) => (
+                      <button
+                        key={pais.id}
+                        type="button"
+                        onClick={() => selectPaisDocumento(pais)}
+                        className="w-full text-left px-4 py-2 hover:bg-blue-50 text-sm"
+                      >
+                        {pais.nombre}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Descripción para Otro */}
+            {formData.tipoDocumento === 'Otro' && (
+              <div className="mb-4">
+                <label htmlFor="tipoOtroDocumento" className="block text-sm font-medium text-gray-700 mb-1">
+                  Descripción del Documento *
+                </label>
+                <input
+                  type="text"
+                  id="tipoOtroDocumento"
+                  name="tipoOtroDocumento"
+                  value={formData.tipoOtroDocumento || ''}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Ej: Licencia de conducir"
+                />
+              </div>
+            )}
           </div>
 
           {/* Número de Documento */}
