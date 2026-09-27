@@ -87,6 +87,7 @@ export default function TramiteForm() {
       try {
         // Cargar configuración de trámites desde el nuevo endpoint unificado
         const configResponse = await fetch('/api/admin/tramites-list')
+        console.log('TramiteForm configResponse status:', configResponse.status)
         if (configResponse.ok) {
           const configData = await configResponse.json()
           const tramitesArray = configData.tramites || []
@@ -111,6 +112,9 @@ export default function TramiteForm() {
               tipoTramite: tramitesArray[0].tipoTramite,
             }))
           }
+        } else {
+          const errorData = await configResponse.text()
+          console.error('TramiteForm error loading tramites:', configResponse.status, errorData)
         }
 
         // Cargar datos del cliente si viene clienteId
