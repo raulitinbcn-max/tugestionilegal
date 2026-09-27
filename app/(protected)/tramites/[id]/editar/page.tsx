@@ -12,6 +12,25 @@ interface Tasa {
   importe: number
 }
 
+interface ServicioAnadir {
+  id: string
+  nombre: string
+  precioBase: number
+  porcentajeIVA: number
+  suplicosBase: number
+}
+
+interface ServicioAnadido {
+  id: string
+  nombre: string
+  precioBase: number
+  porcentajeIVA: number
+  suplicosBase: number
+  servicio?: {
+    id: string
+  }
+}
+
 interface TramiteEditData {
   tramiteConfigId: string
   honorarios: string
@@ -36,6 +55,11 @@ export default function EditarTramitePage() {
   const [tramiteConfigs, setTramiteConfigs] = useState<TramiteConfig[]>([])
   const [tasas, setTasas] = useState<Tasa[]>([])
   const [nuevaTasa, setNuevaTasa] = useState({ nombre: '', importe: '' })
+  const [servicios, setServicios] = useState<ServicioAnadido[]>([])
+  const [serviciosDisponibles, setServiciosDisponibles] = useState<ServicioAnadir[]>([])
+  const [servicioSeleccionado, setServicioSeleccionado] = useState('')
+  const [mostrarModalServicio, setMostrarModalServicio] = useState(false)
+  const [precioServicio, setPrecioServicio] = useState('')
   const [formData, setFormData] = useState<TramiteEditData>({
     tramiteConfigId: '',
     honorarios: '',
@@ -73,6 +97,29 @@ export default function EditarTramitePage() {
       // Cargar tasas del trámite
       if (tramite.tasas) {
         setTasas(tramite.tasas)
+      }
+
+      // Cargar servicios adicionales del trámite
+      const serviciosResponse = await fetch(`/api/servicios-anadidos?tramiteId=${tramiteId}`)
+      if (serviciosResponse.ok) {
+        const serviciosData = await serviciosResponse.json()
+        setServicios(serviciosData || [])
+      }
+
+      // Cargar servicios disponibles (genéricos + específicos para este tipo)
+      const availableResponse = await fetch('/api/admin/servicios-adicionales-config')
+      if (availableResponse.ok) {
+        const availableData = await availableResponse.json()
+        // Filtrar servicios genéricos o asignados a este tipo de trámite
+        const filtered = availableData.filter((s: any) => {
+          if (!s.asignacionesTramites || s.asignacionesTramites.length === 0) {
+            return true // Genérico, disponible para todos
+          }
+          return s.asignacionesTramites.some(
+            (a: any) => a.tramiteConfig.id === tramite.tramiteConfigId
+          )
+        })
+        setServiciosDisponibles(filtered)
       }
 
       // Llenar form
@@ -132,6 +179,59 @@ export default function EditarTramitePage() {
           : t
       )
     )
+  }
+
+  const addServicio = async () => {
+    if (!servicioSeleccionado) {
+      toast.error('Selecciona un servicio')
+      return
+    }
+
+    const servicio = serviciosDisponibles.find((s) => s.id === servicioSeleccionado)
+    if (!servicio) return
+
+    try {
+      const response = await fetch('/api/servicios-anadidos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tramiteId,
+          servicioId: servicioSeleccionado,
+          precioBase: precioServicio ? parseFloat(precioServicio) : undefined,
+        }),
+      })
+
+      if (!response.ok) throw new Error('Error al añadir servicio')
+
+      const nuevoServicio = await response.json()
+      setServicios([...servicios, nuevoServicio])
+      setMostrarModalServicio(false)
+      setServicioSeleccionado('')
+      setPrecioServicio('')
+      toast.success('✅ Servicio añadido')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Error al añadir servicio')
+    }
+  }
+
+  const removeServicio = async (id: string) => {
+    try {
+      const response = await fetch(`/api/servicios-anadidos/${id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) throw new Error('Error al eliminar')
+
+      setServicios(servicios.filter((s) => s.id !== id))
+      toast.success('✅ Servicio eliminado')
+    } catch (error) {
+      toast.error('Error al eliminar servicio')
+    }
+  }
+
+  const calcularTotalServicio = (precio: number, iva: number, suplidos: number) => {
+    const montoIVA = Math.round((precio * iva / 100) * 100) / 100
+    return precio + montoIVA + suplidos
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -258,6 +358,113 @@ export default function EditarTramitePage() {
           </div>
         </div>
       </div>
+
+      {/* Servicios Adicionales */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">🛠️ Servicios Adicionales</h2>
+
+        {servicios.length > 0 && (
+          <div className="mb-6 space-y-3">
+            {servicios.map((servicio) => (
+              <div key={servicio.id} className="flex gap-3 items-end bg-gray-50 p-3 rounded border border-gray-200">
+                <div className="flex-1">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Servicio</label>
+                  <p className="text-sm font-medium text-gray-900">{servicio.nombre}</p>
+                </div>
+                <div className="w-32">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Precio (€)</label>
+                  <p className="text-sm font-medium text-gray-900">{servicio.precioBase}</p>
+                </div>
+                <div className="w-32">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Total (€)</label>
+                  <p className="text-sm font-bold text-blue-600">
+                    {calcularTotalServicio(
+                      servicio.precioBase,
+                      servicio.porcentajeIVA,
+                      servicio.suplicosBase
+                    ).toFixed(2)}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeServicio(servicio.id)}
+                  className="px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 font-semibold rounded"
+                >
+                  🗑️
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={() => setMostrarModalServicio(true)}
+          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition text-sm"
+        >
+          ➕ Añadir Servicio
+        </button>
+      </div>
+
+      {/* Modal para añadir servicio */}
+      {mostrarModalServicio && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Añadir Servicio Adicional</h3>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Servicio *</label>
+              <select
+                value={servicioSeleccionado}
+                onChange={(e) => setServicioSeleccionado(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              >
+                <option value="">Seleccionar servicio...</option>
+                {serviciosDisponibles.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.nombre} ({s.precioBase.toFixed(2)}€)
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {servicioSeleccionado && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Precio (€) - Opcional</label>
+                <input
+                  type="number"
+                  value={precioServicio}
+                  onChange={(e) => setPrecioServicio(e.target.value)}
+                  step="0.01"
+                  placeholder="Dejar en blanco para usar precio del servicio"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                />
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={addServicio}
+                className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition"
+              >
+                ✅ Añadir
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMostrarModalServicio(false)
+                  setServicioSeleccionado('')
+                  setPrecioServicio('')
+                }}
+                className="flex-1 px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold rounded-lg transition"
+              >
+                ✕ Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Tasas */}
       <div className="bg-white rounded-lg shadow p-6">
