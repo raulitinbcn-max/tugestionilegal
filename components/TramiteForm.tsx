@@ -90,6 +90,7 @@ export default function TramiteForm() {
         if (configResponse.ok) {
           const configData = await configResponse.json()
           const tramitesArray = configData.tramites || []
+          console.log('TramiteForm loaded tramites:', tramitesArray)
 
           // Convert to map format for compatibility
           const tramitesMap: Record<string, TramiteConfig> = {}
@@ -99,6 +100,7 @@ export default function TramiteForm() {
               descripcion: t.descripcion,
             }
           })
+          console.log('TramiteForm tramitesMap:', tramitesMap)
           setTramitesConfig(tramitesMap)
 
           // Cargar tasas del primer tipo de trámite por defecto

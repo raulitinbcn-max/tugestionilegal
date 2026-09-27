@@ -22,6 +22,7 @@ interface Categoria {
 }
 
 interface TramiteConfig {
+  id: string
   nombre: string
   descripcion?: string
   categoria?: string
@@ -57,6 +58,7 @@ export default function TasasConfigTab() {
 
           tramitesArray.forEach((t: any) => {
             tramitesMap[t.tipoTramite] = {
+              id: t.id,
               nombre: t.nombre,
               descripcion: t.descripcion || '',
               categoria: t.categoria || '',
@@ -114,7 +116,7 @@ export default function TasasConfigTab() {
       const promises: Promise<Response>[] = []
 
       Object.entries(tasasConfig).forEach(([tipoTramite, tasas]) => {
-        const tramite = tramitesConfig.find(t => t.tipoTramite === tipoTramite)
+        const tramite = tramitesConfig[tipoTramite]
         if (!tramite) return
 
         // Create a POST for each tasa
@@ -124,7 +126,7 @@ export default function TasasConfigTab() {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                tramiteConfigId: tramite.id,
+                tramiteConfigId: tramite?.id,
                 nombre: tasa.nombre,
                 importe: parseFloat(tasa.importe.toString()),
               }),
