@@ -30,20 +30,28 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
 
     // Validate required fields
-    if (!body.tipo || !body.nombre || !body.driveFileId) {
+    if (!body.tipo || !body.nombre || !body.driveFileId || !body.tipoTramite) {
       return NextResponse.json(
-        { error: 'tipo, nombre y driveFileId son requeridos' },
+        { error: 'tipo, nombre, tipoTramite y driveFileId son requeridos' },
         { status: 400 }
       )
     }
 
+    console.log('[plantillas-registradas POST] Creating plantilla with data:', { nombre: body.nombre, tipo: body.tipo, tipoTramite: body.tipoTramite })
+
     const plantilla = await db.plantilla.create({
-      data: body,
+      data: {
+        nombre: body.nombre,
+        tipo: body.tipo,
+        tipoTramite: body.tipoTramite,
+        driveFileId: body.driveFileId,
+      },
     })
 
+    console.log('[plantillas-registradas POST] Successfully created plantilla:', plantilla.id)
     return NextResponse.json(plantilla)
   } catch (error: any) {
-    console.error('Error creating plantilla:', error)
+    console.error('[plantillas-registradas POST] Error:', error?.message || error)
     return NextResponse.json({ error: error?.message || 'Error interno' }, { status: 500 })
   }
 }
