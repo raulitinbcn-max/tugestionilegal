@@ -64,24 +64,15 @@ export default function PlantillasTab() {
       const response = await fetch('/api/admin/list-plantillas-drive')
       const data = await response.json()
 
-      console.log('[PlantillasTab] Response from list-plantillas-drive:', {
-        ok: response.ok,
-        status: response.status,
-        dataKeys: Object.keys(data),
-        plantillasCount: data.plantillas?.length || 0,
-        error: data.error
-      })
+      console.log('[PlantillasTab] Full response:', data)
+      console.log('[PlantillasTab] data.plantillas type:', typeof data.plantillas, Array.isArray(data.plantillas))
 
-      if (response.ok) {
-        if (data.error) {
-          console.warn('Aviso al cargar plantillas de Drive:', data.error)
-        }
-
+      if (response.ok && data.plantillas) {
         const plantillas = Array.isArray(data.plantillas) ? data.plantillas : []
-        console.log('[PlantillasTab] Plantillas disponibles:', plantillas)
+        console.log('[PlantillasTab] Plantillas disponibles:', plantillas.length, 'items')
         setPlantillasDisponibles(plantillas)
       } else {
-        console.warn('Error cargando plantillas de Drive:', response.status)
+        console.warn('Error o datos invalidos:', { ok: response.ok, hasPlantillas: !!data.plantillas, error: data.error })
         setPlantillasDisponibles([])
       }
 
