@@ -82,16 +82,11 @@ export default function EditarTramitePage() {
       const tramite = await tramiteResponse.json()
 
       // Cargar configuración de trámites
-      const configResponse = await fetch('/api/admin/tramites-config')
+      const configResponse = await fetch('/api/admin/tramites-list')
       if (configResponse.ok) {
         const configData = await configResponse.json()
-        const configs = configData.configs || {}
-        const configsArray: TramiteConfig[] = Object.entries(configs).map(([key, value]: [string, any]) => ({
-          id: key,
-          tipoTramite: key,
-          nombre: value.nombre || key,
-        }))
-        setTramiteConfigs(configsArray)
+        const tramitesArray = configData.tramites || []
+        setTramiteConfigs(tramitesArray)
       }
 
       // Cargar tasas del trámite
@@ -311,7 +306,7 @@ export default function EditarTramitePage() {
             >
               <option value="">Seleccionar...</option>
               {tramiteConfigs.map((config) => (
-                <option key={config.id} value={config.tipoTramite}>
+                <option key={config.id} value={config.id}>
                   {config.nombre}
                 </option>
               ))}
