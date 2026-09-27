@@ -20,11 +20,21 @@ interface Categoria {
   icono?: string
 }
 
+interface TipoDocumento {
+  id: string
+  nombre: string
+  descripcion?: string
+  icono?: string
+  color?: string
+}
+
 interface CheckDocumento {
   id: string
   nombre: string
   descripcion?: string
   tramiteConfigId: string
+  tipoDocumentoId?: string
+  tipoDocumento?: TipoDocumento
   orden?: number
   tipoVencimiento?: string
   diasCaducidad?: number
@@ -34,6 +44,7 @@ export default function CheckDocumentosTab() {
   const [tramitesConfig, setTramitesConfig] = useState<TramiteConfig[]>([])
   const [checkDocumentos, setCheckDocumentos] = useState<CheckDocumento[]>([])
   const [categorias, setCategorias] = useState<Categoria[]>([])
+  const [tiposDocumento, setTiposDocumento] = useState<TipoDocumento[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedTramiteConfigId, setSelectedTramiteConfigId] = useState<string>('')
   const [modalOpen, setModalOpen] = useState(false)
@@ -43,6 +54,7 @@ export default function CheckDocumentosTab() {
   useEffect(() => {
     loadTramitesConfig()
     loadCategorias()
+    loadTiposDocumento()
   }, [])
 
   useEffect(() => {
@@ -80,6 +92,17 @@ export default function CheckDocumentosTab() {
     }
   }
 
+  const loadTiposDocumento = async () => {
+    try {
+      const response = await fetch('/api/admin/tipos-documento')
+      if (response.ok) {
+        setTiposDocumento(await response.json())
+      }
+    } catch (error) {
+      console.error('Error cargando tipos de documento:', error)
+    }
+  }
+
   const loadDocumentos = async () => {
     if (!selectedTramiteConfigId) return
     setLoading(true)
@@ -109,6 +132,7 @@ export default function CheckDocumentosTab() {
       nombre: '',
       descripcion: '',
       tramiteConfigId: selectedTramiteConfigId,
+      tipoDocumentoId: '',
       orden: (checkDocumentos.length + 1) * 10,
       tipoVencimiento: '',
       diasCaducidad: 0,
@@ -132,6 +156,7 @@ export default function CheckDocumentosTab() {
           body: JSON.stringify({
             nombre: documento.nombre,
             descripcion: documento.descripcion,
+            tipoDocumentoId: documento.tipoDocumentoId,
             tramiteConfigId: documento.tramiteConfigId,
             orden: documento.orden || 0,
             tipoVencimiento: documento.tipoVencimiento || null,
@@ -147,6 +172,7 @@ export default function CheckDocumentosTab() {
           body: JSON.stringify({
             nombre: documento.nombre,
             descripcion: documento.descripcion,
+            tipoDocumentoId: documento.tipoDocumentoId,
             orden: documento.orden || 0,
             tipoVencimiento: documento.tipoVencimiento || null,
             diasCaducidad: documento.diasCaducidad ? parseInt(documento.diasCaducidad.toString()) : null,
@@ -237,23 +263,21 @@ export default function CheckDocumentosTab() {
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
               <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Nº Orden</th>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Nombre del Documento</th>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Descripción</th>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Tipo de Vencimiento</th>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Días</th>
+              <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Tipo de Documento</th>
+              <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Días de Caducidad</th>
               <th className="px-6 py-4 text-right text-sm font-semibold text-gray-900">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
             {loading ? (
               <tr>
-                <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
                   Cargando documentos...
                 </td>
               </tr>
             ) : checkDocumentos.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
                   No hay documentos configurados para este trámite
                 </td>
               </tr>
@@ -264,28 +288,24 @@ export default function CheckDocumentosTab() {
                     <p className="text-sm font-semibold text-gray-900">{doc.orden || '—'}</p>
                   </td>
                   <td className="px-6 py-4">
-                    <p className="text-sm font-semibold text-gray-900">{doc.nombre}</p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">{doc.tipoDocumento?.icono || '📄'}</span>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900">{doc.tipoDocumento?.nombre || doc.nombre}</p>
+                        {doc.tipoDocumento?.descripcion && (
+                          <p className="text-xs text-gray-600">{doc.tipoDocumento.descripcion}</p>
+                        )}
+                      </div>
+                    </div>
                   </td>
                   <td className="px-6 py-4">
-                    <p className="text-sm text-gray-600 max-w-xs truncate">{doc.descripcion || '—'}</p>
-                  </td>
-                  <td className="px-6 py-4">
-                    {doc.tipoVencimiento ? (
-                      <span className="inline-block px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs font-semibold">
-                        {doc.tipoVencimiento === 'documento' && '📄'}
-                        {doc.tipoVencimiento === 'requerimiento' && '📋'}
-                        {doc.tipoVencimiento === 'accion' && '⏱️'}
-                        {' '}
-                        {doc.tipoVencimiento === 'documento' && 'Documento'}
-                        {doc.tipoVencimiento === 'requerimiento' && 'Requerimiento'}
-                        {doc.tipoVencimiento === 'accion' && 'Acción'}
+                    {doc.diasCaducidad ? (
+                      <span className="inline-block px-3 py-1 bg-amber-100 text-amber-800 rounded text-sm font-semibold">
+                        {doc.diasCaducidad} días
                       </span>
                     ) : (
-                      <span className="text-gray-400 text-sm">—</span>
+                      <span className="text-gray-400 text-sm">Sin caducidad</span>
                     )}
-                  </td>
-                  <td className="px-6 py-4">
-                    <p className="text-sm font-semibold text-gray-900">{doc.diasCaducidad || '—'}</p>
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex gap-2 justify-end">
@@ -314,6 +334,7 @@ export default function CheckDocumentosTab() {
       <EditarCheckDocumentoModal
         isOpen={modalOpen}
         documento={selectedDocumento}
+        tiposDocumento={tiposDocumento}
         onClose={() => {
           setModalOpen(false)
           setSelectedDocumento(null)

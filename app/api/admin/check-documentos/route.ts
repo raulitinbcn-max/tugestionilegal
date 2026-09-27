@@ -20,10 +20,12 @@ export async function GET(req: NextRequest) {
     if (tramiteConfigId) {
       checks = await db.checkDocumento.findMany({
         where: { tramiteConfigId },
+        include: { tipoDocumento: true },
         orderBy: { orden: 'asc' },
       })
     } else {
       checks = await db.checkDocumento.findMany({
+        include: { tipoDocumento: true },
         orderBy: { tramiteConfigId: 'asc', orden: 'asc' },
       })
     }
@@ -45,15 +47,24 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
 
     // Validate required fields
-    if (!body.tramiteConfigId || !body.nombre) {
+    if (!body.tramiteConfigId || !body.tipoDocumentoId) {
       return NextResponse.json(
-        { error: 'tramiteConfigId y nombre son requeridos' },
+        { error: 'tramiteConfigId y tipoDocumentoId son requeridos' },
         { status: 400 }
       )
     }
 
     const check = await db.checkDocumento.create({
-      data: body,
+      data: {
+        tramiteConfigId: body.tramiteConfigId,
+        tipoDocumentoId: body.tipoDocumentoId,
+        nombre: body.nombre || '',
+        descripcion: body.descripcion || null,
+        orden: body.orden || 0,
+        tipoVencimiento: body.tipoVencimiento || null,
+        diasCaducidad: body.diasCaducidad || null,
+      },
+      include: { tipoDocumento: true },
     })
 
     return NextResponse.json(check)

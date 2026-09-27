@@ -228,6 +228,7 @@ model TipoDocumento {
   updatedAt         DateTime @updatedAt
 
   documentos        Documento[]
+  checkDocumentos   CheckDocumento[]
 
   @@index([categoriaId])
   @@map("tipos_documento")
@@ -310,6 +311,8 @@ model CheckDocumento {
   tramiteConfig     TramiteConfiguracion @relation(fields: [tramiteConfigId], references: [id], onDelete: Cascade)
   nombre            String
   descripcion       String?
+  tipoDocumentoId   String?
+  tipoDocumento     TipoDocumento? @relation(fields: [tipoDocumentoId], references: [id], onDelete: SetNull)
   orden             Int      @default(0)
   tipoVencimiento   String?  // "documento", "requerimiento", "accion"
   diasCaducidad     Int?     // Días para caducidad
@@ -320,6 +323,7 @@ model CheckDocumento {
 
   @@unique([tramiteConfigId, nombre])
   @@index([tramiteConfigId])
+  @@index([tipoDocumentoId])
   @@map("check_documentos")
 }
 
