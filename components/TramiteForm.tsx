@@ -181,12 +181,13 @@ export default function TramiteForm() {
         }),
       })
 
+      const data = await response.json()
+
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.message || 'Error al crear el trámite')
+        throw new Error(data.message || 'Error al crear el trámite')
       }
 
-      const { tramite } = await response.json()
+      const { tramite } = data
       toast.success('Trámite creado exitosamente')
       router.push(`/tramites/${tramite.id}`)
     } catch (error) {
