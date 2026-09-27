@@ -72,6 +72,7 @@ model Tramite {
   facturasProforma  FacturaProforma[]
   vencimientos      Vencimiento[]
   tasas             Tasa[]
+  serviciosAnadidos ServicioAnadido[]
   checklistItems    ChecklistItem[]
 
   @@index([clienteId])
@@ -93,6 +94,7 @@ model TramiteConfiguracion {
 
   checkDocumentos   CheckDocumento[]
   tasasConfiguracion TasaConfiguracion[]
+  serviciosAdicionales ServicioAdicionalConfig[]
   plantillas        Plantilla[]
   tramites          Tramite[]
 
@@ -122,6 +124,49 @@ model Tasa {
   createdAt         DateTime @default(now())
 
   @@map("tasas")
+}
+
+model ServicioAdicionalConfig {
+  id                    String   @id @default(cuid())
+  tramiteConfigId       String
+  tramiteConfig         TramiteConfiguracion @relation(fields: [tramiteConfigId], references: [id], onDelete: Cascade)
+  nombre                String
+  descripcion           String?
+  precioBase            Float
+  porcentajeIVA         Float   @default(21)
+  suplicosBase          Float   @default(0)
+  documentosRequeridos  String?
+  activo                Boolean @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  serviciosAnadidos     ServicioAnadido[]
+
+  @@unique([tramiteConfigId, nombre])
+  @@index([tramiteConfigId])
+  @@map("servicios_adicionales_config")
+}
+
+model ServicioAnadido {
+  id                    String   @id @default(cuid())
+  tramiteId             String
+  tramite               Tramite  @relation(fields: [tramiteId], references: [id], onDelete: Cascade)
+  servicioConfigId      String
+  servicioConfig        ServicioAdicionalConfig @relation(fields: [servicioConfigId], references: [id], onDelete: Cascade)
+  nombre                String
+  precioBase            Float
+  porcentajeIVA         Float   @default(21)
+  suplicosBase          Float   @default(0)
+  montoIVA              Float   @default(0)
+  suplicosTotales       Float   @default(0)
+  total                 Float
+  documentosRequeridos  String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([tramiteId])
+  @@index([servicioConfigId])
+  @@map("servicios_anadidos")
 }
 
 model HistorialEstado {

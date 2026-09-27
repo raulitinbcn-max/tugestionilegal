@@ -5,10 +5,11 @@ import Link from 'next/link'
 import PlantillasTab from '@/components/admin/PlantillasTab'
 import TramitesConfigTab from '@/components/admin/TramitesConfigTab'
 import TasasConfigTab from '@/components/admin/TasasConfigTab'
+import ServiciosAdicionalesTab from '@/components/admin/ServiciosAdicionalesTab'
 import CheckDocumentosTab from '@/components/admin/CheckDocumentosTab'
 import TiposDocumentoTab from '@/components/admin/TiposDocumentoTab'
 
-type ActiveTab = 'tramites' | 'plantillas' | 'tasas' | 'check-documentos' | 'tipos-documento' | 'usuarios'
+type ActiveTab = 'tramites' | 'plantillas' | 'tasas' | 'servicios-adicionales' | 'check-documentos' | 'tipos-documento' | 'usuarios'
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('tramites')
@@ -17,6 +18,7 @@ export default function AdminPage() {
     { id: 'tramites' as const, label: 'Trámites', icon: '⚙️' },
     { id: 'plantillas' as const, label: 'Plantillas', icon: '📄' },
     { id: 'tasas' as const, label: 'Tasas', icon: '💰' },
+    { id: 'servicios-adicionales' as const, label: 'Servicios Adicionales', icon: '🛠️' },
     { id: 'check-documentos' as const, label: 'Checklist', icon: '✅' },
     { id: 'tipos-documento' as const, label: 'Tipos Documento', icon: '📋' },
     { id: 'usuarios' as const, label: 'Usuarios', icon: '👥' },
@@ -50,6 +52,7 @@ export default function AdminPage() {
         {activeTab === 'tramites' && <TramitesConfigTab />}
         {activeTab === 'plantillas' && <PlantillasTab />}
         {activeTab === 'tasas' && <TasasConfigTab />}
+        {activeTab === 'servicios-adicionales' && <ServiciosAdicionalesTab />}
         {activeTab === 'check-documentos' && <CheckDocumentosTab />}
         {activeTab === 'tipos-documento' && <TiposDocumentoTab />}
         {activeTab === 'usuarios' && (

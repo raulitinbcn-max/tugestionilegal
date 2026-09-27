@@ -1,0 +1,368 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import toast from 'react-hot-toast'
+
+interface ServicioAdicional {
+  id: string
+  nombre: string
+  descripcion?: string
+  precioBase: number
+  porcentajeIVA: number
+  suplicosBase: number
+  activo: boolean
+}
+
+interface TramiteConfig {
+  id: string
+  tipoTramite: string
+  nombre: string
+}
+
+export default function ServiciosAdicionalesTab() {
+  const [tramitesConfig, setTramitesConfig] = useState<TramiteConfig[]>([])
+  const [selectedTramite, setSelectedTramite] = useState<string>('')
+  const [servicios, setServicios] = useState<ServicioAdicional[]>([])
+  const [loading, setLoading] = useState(true)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [formData, setFormData] = useState<Partial<ServicioAdicional>>({})
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    loadTramitesConfig()
+  }, [])
+
+  useEffect(() => {
+    if (selectedTramite) {
+      loadServicios()
+    }
+  }, [selectedTramite])
+
+  const loadTramitesConfig = async () => {
+    try {
+      const response = await fetch('/api/admin/tramites-list')
+      if (response.ok) {
+        const data = await response.json()
+        const tramites = data.tramites || []
+        setTramitesConfig(tramites)
+        if (tramites.length > 0) {
+          setSelectedTramite(tramites[0].tipoTramite)
+        }
+      }
+    } catch (error) {
+      console.error('Error cargando trámites:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadServicios = async () => {
+    try {
+      const tramiteConfig = tramitesConfig.find((t) => t.tipoTramite === selectedTramite)
+      if (!tramiteConfig) return
+
+      const response = await fetch(`/api/admin/servicios-adicionales-config?tramiteConfigId=${tramiteConfig.id}`)
+      if (response.ok) {
+        const data = await response.json()
+        setServicios(data || [])
+      }
+    } catch (error) {
+      console.error('Error cargando servicios:', error)
+      toast.error('Error cargando servicios')
+    }
+  }
+
+  const handleNuevo = () => {
+    setEditingId('nuevo')
+    setFormData({
+      nombre: '',
+      descripcion: '',
+      precioBase: 0,
+      porcentajeIVA: 21,
+      suplicosBase: 0,
+      activo: true,
+    })
+  }
+
+  const handleEditar = (servicio: ServicioAdicional) => {
+    setEditingId(servicio.id)
+    setFormData({ ...servicio })
+  }
+
+  const handleCancelar = () => {
+    setEditingId(null)
+    setFormData({})
+  }
+
+  const handleGuardar = async () => {
+    if (!formData.nombre || formData.precioBase === undefined) {
+      toast.error('Nombre y precio base requeridos')
+      return
+    }
+
+    setSaving(true)
+    try {
+      const tramiteConfig = tramitesConfig.find((t) => t.tipoTramite === selectedTramite)
+      if (!tramiteConfig) return
+
+      if (editingId === 'nuevo') {
+        const response = await fetch('/api/admin/servicios-adicionales-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tramiteConfigId: tramiteConfig.id,
+            ...formData,
+          }),
+        })
+
+        if (!response.ok) throw new Error('Error al crear')
+        toast.success('✅ Servicio creado')
+      } else {
+        const response = await fetch(`/api/admin/servicios-adicionales-config/${editingId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData),
+        })
+
+        if (!response.ok) throw new Error('Error al actualizar')
+        toast.success('✅ Servicio actualizado')
+      }
+
+      setEditingId(null)
+      setFormData({})
+      await loadServicios()
+    } catch (error) {
+      toast.error('Error al guardar servicio')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleEliminar = async (id: string) => {
+    if (!confirm('¿Eliminar este servicio?')) return
+
+    try {
+      const response = await fetch(`/api/admin/servicios-adicionales-config/${id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) throw new Error('Error al eliminar')
+      toast.success('✅ Servicio eliminado')
+      await loadServicios()
+    } catch (error) {
+      toast.error('Error al eliminar')
+    }
+  }
+
+  if (loading) return <div className="p-8">Cargando...</div>
+
+  const tramiteConfig = tramitesConfig.find((t) => t.tipoTramite === selectedTramite)
+
+  return (
+    <div className="p-8">
+      <div className="mb-6">
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">🛠️ Servicios Adicionales</h2>
+        <p className="text-gray-600 text-sm">Configura servicios adicionales por tipo de trámite</p>
+      </div>
+
+      {/* Selector de trámite */}
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Trámite</label>
+        <select
+          value={selectedTramite}
+          onChange={(e) => setSelectedTramite(e.target.value)}
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+        >
+          {tramitesConfig.map((t) => (
+            <option key={t.id} value={t.tipoTramite}>
+              {t.nombre}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Tabla de servicios */}
+      <div className="bg-white rounded-lg shadow overflow-hidden mb-6">
+        <table className="w-full">
+          <thead className="bg-gray-50 border-b">
+            <tr>
+              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Nombre</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Precio Base</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">IVA %</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Suplidos</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Activo</th>
+              <th className="px-6 py-3 text-right text-sm font-semibold text-gray-900">Acciones</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {editingId === 'nuevo' ? (
+              <tr className="bg-blue-50">
+                <td className="px-6 py-3">
+                  <input
+                    type="text"
+                    value={formData.nombre || ''}
+                    onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                    placeholder="Nombre"
+                    className="w-full px-2 py-1 border border-gray-300 rounded"
+                  />
+                </td>
+                <td className="px-6 py-3">
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formData.precioBase || ''}
+                    onChange={(e) => setFormData({ ...formData, precioBase: parseFloat(e.target.value) })}
+                    placeholder="0.00"
+                    className="w-20 px-2 py-1 border border-gray-300 rounded"
+                  />
+                </td>
+                <td className="px-6 py-3">
+                  <input
+                    type="number"
+                    value={formData.porcentajeIVA || 21}
+                    onChange={(e) => setFormData({ ...formData, porcentajeIVA: parseFloat(e.target.value) })}
+                    className="w-16 px-2 py-1 border border-gray-300 rounded"
+                  />
+                </td>
+                <td className="px-6 py-3">
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formData.suplicosBase || ''}
+                    onChange={(e) => setFormData({ ...formData, suplicosBase: parseFloat(e.target.value) })}
+                    placeholder="0.00"
+                    className="w-20 px-2 py-1 border border-gray-300 rounded"
+                  />
+                </td>
+                <td className="px-6 py-3">
+                  <input
+                    type="checkbox"
+                    checked={formData.activo !== false}
+                    onChange={(e) => setFormData({ ...formData, activo: e.target.checked })}
+                    className="w-4 h-4"
+                  />
+                </td>
+                <td className="px-6 py-3 text-right">
+                  <button
+                    onClick={handleGuardar}
+                    disabled={saving}
+                    className="px-3 py-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white text-sm rounded mr-2"
+                  >
+                    ✅ Guardar
+                  </button>
+                  <button
+                    onClick={handleCancelar}
+                    className="px-3 py-1 bg-gray-300 hover:bg-gray-400 text-gray-800 text-sm rounded"
+                  >
+                    ✕
+                  </button>
+                </td>
+              </tr>
+            ) : null}
+
+            {servicios.map((servicio) =>
+              editingId === servicio.id ? (
+                <tr key={servicio.id} className="bg-blue-50">
+                  <td className="px-6 py-3">
+                    <input
+                      type="text"
+                      value={formData.nombre || ''}
+                      onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                      className="w-full px-2 py-1 border border-gray-300 rounded"
+                    />
+                  </td>
+                  <td className="px-6 py-3">
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={formData.precioBase || ''}
+                      onChange={(e) => setFormData({ ...formData, precioBase: parseFloat(e.target.value) })}
+                      className="w-20 px-2 py-1 border border-gray-300 rounded"
+                    />
+                  </td>
+                  <td className="px-6 py-3">
+                    <input
+                      type="number"
+                      value={formData.porcentajeIVA || 21}
+                      onChange={(e) => setFormData({ ...formData, porcentajeIVA: parseFloat(e.target.value) })}
+                      className="w-16 px-2 py-1 border border-gray-300 rounded"
+                    />
+                  </td>
+                  <td className="px-6 py-3">
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={formData.suplicosBase || ''}
+                      onChange={(e) => setFormData({ ...formData, suplicosBase: parseFloat(e.target.value) })}
+                      className="w-20 px-2 py-1 border border-gray-300 rounded"
+                    />
+                  </td>
+                  <td className="px-6 py-3">
+                    <input
+                      type="checkbox"
+                      checked={formData.activo !== false}
+                      onChange={(e) => setFormData({ ...formData, activo: e.target.checked })}
+                      className="w-4 h-4"
+                    />
+                  </td>
+                  <td className="px-6 py-3 text-right">
+                    <button
+                      onClick={handleGuardar}
+                      disabled={saving}
+                      className="px-3 py-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white text-sm rounded mr-2"
+                    >
+                      ✅ Guardar
+                    </button>
+                    <button
+                      onClick={handleCancelar}
+                      className="px-3 py-1 bg-gray-300 hover:bg-gray-400 text-gray-800 text-sm rounded"
+                    >
+                      ✕
+                    </button>
+                  </td>
+                </tr>
+              ) : (
+                <tr key={servicio.id}>
+                  <td className="px-6 py-3 text-gray-900 font-medium">{servicio.nombre}</td>
+                  <td className="px-6 py-3">{servicio.precioBase}€</td>
+                  <td className="px-6 py-3">{servicio.porcentajeIVA}%</td>
+                  <td className="px-6 py-3">{servicio.suplicosBase}€</td>
+                  <td className="px-6 py-3">{servicio.activo ? '✅' : '❌'}</td>
+                  <td className="px-6 py-3 text-right">
+                    <button
+                      onClick={() => handleEditar(servicio)}
+                      className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded mr-2"
+                    >
+                      ✏️ Editar
+                    </button>
+                    <button
+                      onClick={() => handleEliminar(servicio.id)}
+                      className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm rounded"
+                    >
+                      🗑️ Eliminar
+                    </button>
+                  </td>
+                </tr>
+              )
+            )}
+          </tbody>
+        </table>
+
+        {servicios.length === 0 && editingId !== 'nuevo' && (
+          <div className="p-8 text-center text-gray-500">
+            <p>No hay servicios configurados para este trámite</p>
+          </div>
+        )}
+      </div>
+
+      {editingId !== 'nuevo' && (
+        <button
+          onClick={handleNuevo}
+          className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition"
+        >
+          ➕ Nuevo Servicio
+        </button>
+      )}
+    </div>
+  )
+}
