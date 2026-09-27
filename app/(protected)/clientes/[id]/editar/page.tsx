@@ -48,6 +48,9 @@ export default function EditarClientePage() {
   const [paisesFiltered, setPaisesFiltered] = useState<Pais[]>([])
   const [showPaisesDropdown, setShowPaisesDropdown] = useState(false)
   const [busquedaNacionalidad, setBusquedaNacionalidad] = useState('')
+  const [showPaisesDropdownDocumento, setShowPaisesDropdownDocumento] = useState(false)
+  const [busquedaPaisDocumento, setBusquedaPaisDocumento] = useState('')
+  const [paisesDocumentoFiltered, setPaisesDocumentoFiltered] = useState<Pais[]>([])
 
   useEffect(() => {
     loadCliente()
@@ -79,6 +82,10 @@ export default function EditarClientePage() {
       if (data.tipoDocumento && data.numeroDocumento) {
         const resultado = validarDocumento(data.tipoDocumento, data.numeroDocumento)
         setValidacionDocumento(resultado)
+      }
+      // Establecer búsqueda de país del documento si es Pasaporte
+      if (data.paisDocumento && data.tipoDocumento === 'Pasaporte') {
+        setBusquedaPaisDocumento(data.paisDocumento)
       }
     } catch (error) {
       console.error('Error:', error)
@@ -155,6 +162,34 @@ export default function EditarClientePage() {
     })
     setBusquedaNacionalidad(pais.nombre)
     setShowPaisesDropdown(false)
+  }
+
+  const handlePaisDocumentoChange = (value: string) => {
+    setBusquedaPaisDocumento(value)
+    setShowPaisesDropdownDocumento(true)
+    setFormData((prev) => ({
+      ...prev,
+      paisDocumento: value,
+    }))
+
+    // Filtrar países según búsqueda
+    if (value.trim()) {
+      const filtered = paisesDisponibles.filter((p) =>
+        p.nombre.toLowerCase().includes(value.toLowerCase())
+      )
+      setPaisesDocumentoFiltered(filtered)
+    } else {
+      setPaisesDocumentoFiltered(paisesDisponibles)
+    }
+  }
+
+  const selectPaisDocumento = (pais: Pais) => {
+    setFormData((prev) => ({
+      ...prev,
+      paisDocumento: pais.nombre,
+    }))
+    setBusquedaPaisDocumento(pais.nombre)
+    setShowPaisesDropdownDocumento(false)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -353,24 +388,40 @@ export default function EditarClientePage() {
             </div>
 
             {formData.tipoDocumento === 'Pasaporte' && (
-              <div>
+              <div className="relative">
                 <label htmlFor="paisDocumento" className="block text-sm font-medium text-gray-700 mb-1">
                   País del Pasaporte
                 </label>
-                <select
+                <input
+                  type="text"
                   id="paisDocumento"
-                  name="paisDocumento"
-                  value={formData.paisDocumento || ''}
-                  onChange={handleChange}
+                  value={busquedaPaisDocumento}
+                  onChange={(e) => handlePaisDocumentoChange(e.target.value)}
+                  onFocus={() => setShowPaisesDropdownDocumento(true)}
+                  onBlur={() => setTimeout(() => setShowPaisesDropdownDocumento(false), 200)}
+                  placeholder="Escribe para buscar..."
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">Seleccionar país...</option>
-                  {paisesDisponibles.map((pais) => (
-                    <option key={pais.id} value={pais.nombre}>
-                      {pais.nombre}
-                    </option>
-                  ))}
-                </select>
+                />
+                {showPaisesDropdownDocumento && paisesDocumentoFiltered.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                    {paisesDocumentoFiltered.map((pais) => (
+                      <button
+                        key={pais.id}
+                        type="button"
+                        onClick={() => selectPaisDocumento(pais)}
+                        className="w-full text-left px-4 py-2 hover:bg-blue-50 border-b border-gray-100 last:border-b-0"
+                      >
+                        {pais.nombre}
+                        {pais.codigo && <span className="text-gray-500 ml-2">({pais.codigo})</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {showPaisesDropdownDocumento && busquedaPaisDocumento && paisesDocumentoFiltered.length === 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-3 text-gray-500 text-sm">
+                    No se encontraron países
+                  </div>
+                )}
               </div>
             )}
 
