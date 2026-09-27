@@ -172,7 +172,7 @@ export default function ServiciosAdicionalesTab() {
           </thead>
           <tbody className="divide-y">
             {editingId === 'nuevo' && (
-              <tr className="bg-blue-50">
+              <tr className="bg-yellow-50 border-2 border-yellow-300">
                 <td className="px-6 py-3">
                   <input
                     id="nuevo-nombre"
@@ -403,13 +403,106 @@ export default function ServiciosAdicionalesTab() {
         )}
       </div>
 
-      {editingId !== 'nuevo' && (
+      {editingId !== 'nuevo' ? (
         <button
           onClick={handleNuevo}
           className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition"
         >
           ➕ Nuevo Servicio
         </button>
+      ) : (
+        <div className="mt-6 p-6 bg-yellow-50 border-2 border-yellow-300 rounded-lg">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Crear Nuevo Servicio</h3>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
+              <input
+                id="nuevo-nombre-panel"
+                name="nombre"
+                type="text"
+                value={formData.nombre || ''}
+                onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                placeholder="Ej: Traducción de documentos"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Precio Base (€) *</label>
+                <input
+                  id="nuevo-precioBase-panel"
+                  name="precioBase"
+                  type="number"
+                  step="0.01"
+                  value={formData.precioBase || ''}
+                  onChange={(e) => setFormData({ ...formData, precioBase: parseFloat(e.target.value) })}
+                  placeholder="0.00"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">IVA (%)</label>
+                <input
+                  id="nuevo-porcentajeIVA-panel"
+                  name="porcentajeIVA"
+                  type="number"
+                  value={formData.porcentajeIVA || 21}
+                  onChange={(e) => setFormData({ ...formData, porcentajeIVA: parseFloat(e.target.value) })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Suplidos (€)</label>
+              <input
+                id="nuevo-suplicosBase-panel"
+                name="suplicosBase"
+                type="number"
+                step="0.01"
+                value={formData.suplicosBase || ''}
+                onChange={(e) => setFormData({ ...formData, suplicosBase: parseFloat(e.target.value) })}
+                placeholder="0.00"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Asignar a Trámites (vacío = Genérico)</label>
+              <select
+                id="nuevo-tramites-panel"
+                name="tramites"
+                multiple
+                value={formData.tramiteConfigIds || []}
+                onChange={(e) => {
+                  const selected = Array.from(e.target.selectedOptions, option => option.value)
+                  setFormData({ ...formData, tramiteConfigIds: selected })
+                }}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                size={4}
+              >
+                {tramitesConfig.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="pt-4 flex gap-3">
+              <button
+                onClick={handleGuardar}
+                disabled={saving}
+                className="px-6 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-semibold rounded-lg transition"
+              >
+                {saving ? 'Guardando...' : '✅ Crear Servicio'}
+              </button>
+              <button
+                onClick={handleCancelar}
+                className="px-6 py-2 bg-gray-400 hover:bg-gray-500 text-white font-semibold rounded-lg transition"
+              >
+                ✕ Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
