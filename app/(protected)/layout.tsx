@@ -19,7 +19,7 @@ export default async function ProtectedLayout({
     <div className="flex h-screen bg-gray-50">
       <Navigation />
       <main className="flex-1 overflow-auto">
-        <BackupTrigger />
+        {/* <BackupTrigger /> */}
         {children}
       </main>
     </div>
