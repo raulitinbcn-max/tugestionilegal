@@ -158,7 +158,7 @@ export default function ServiciosAdicionalesTab() {
             </tr>
           </thead>
           <tbody className="divide-y">
-            {editingId === 'nuevo' ? (
+            {editingId === 'nuevo' && (
               <tr className="bg-blue-50">
                 <td className="px-6 py-3">
                   <input
@@ -234,7 +234,7 @@ export default function ServiciosAdicionalesTab() {
                   </button>
                 </td>
               </tr>
-            ) : null}
+            )}
 
             {servicios.map((servicio) =>
               editingId === servicio.id ? (
