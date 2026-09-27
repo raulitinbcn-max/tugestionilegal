@@ -61,7 +61,7 @@ export async function PUT(
   try {
     const { id } = await params
     const body = await req.json()
-    const { estado, notas, tipoTramite, honorarios, formaPago, suplidos, tasas } = body
+    const { estado, notas, tipoTramite, honorarios, porcentajeIVA, formaPago, suplidos, tasas, servicios } = body
 
     const tramiteActual = await db.tramite.findUnique({
       where: { id },
@@ -80,6 +80,7 @@ export async function PUT(
     if (estado !== undefined) dataUpdate.estado = estado
     if (notas !== undefined) dataUpdate.notas = notas
     if (honorarios !== undefined) dataUpdate.honorarios = honorarios ? parseFloat(honorarios) : null
+    if (porcentajeIVA !== undefined) dataUpdate.porcentajeIVA = parseFloat(porcentajeIVA)
     if (formaPago !== undefined) dataUpdate.formaPago = formaPago || null
     if (suplidos !== undefined) dataUpdate.suplidos = suplidos ? parseFloat(suplidos) : 0
 
@@ -135,6 +136,30 @@ export async function PUT(
               tramiteId: id,
               nombre: tasa.nombre,
               importe: parseFloat(tasa.importe),
+            },
+          })
+        )
+      )
+    }
+
+    // Actualizar servicios adicionales si se proporcionan
+    if (servicios && Array.isArray(servicios)) {
+      // Eliminar servicios existentes
+      await db.servicioAnadidoEnExpediente.deleteMany({
+        where: { tramiteId: id },
+      })
+
+      // Crear nuevos servicios
+      await Promise.all(
+        servicios.map((servicio: any) =>
+          db.servicioAnadidoEnExpediente.create({
+            data: {
+              tramiteId: id,
+              servicioId: servicio.id,
+              nombre: servicio.nombre,
+              precioBase: parseFloat(servicio.precioBase),
+              porcentajeIVA: parseFloat(servicio.porcentajeIVA),
+              suplicosBase: parseFloat(servicio.suplicosBase),
             },
           })
         )

@@ -12,7 +12,7 @@ interface Tasa {
   importe: number
 }
 
-interface ServicioAnadir {
+interface ServicioAdicional {
   id: string
   nombre: string
   precioBase: number
@@ -26,18 +26,26 @@ interface ServicioAnadido {
   precioBase: number
   porcentajeIVA: number
   suplicosBase: number
-  servicio?: {
-    id: string
-  }
 }
 
 interface TramiteEditData {
-  tramiteConfigId: string
   honorarios: string
   porcentajeIVA: string
   formaPago: string
-  suplidos: string
   notas: string
+}
+
+interface ClienteData {
+  nombreCompleto: string
+  fechaNacimiento: string
+  nacionalidad: string
+  numeroPasaporte: string
+  direccion: string
+  codigoPostal: string
+  poblacion: string
+  provincia: string
+  email: string
+  telefono: string
 }
 
 interface TramiteConfig {
@@ -53,21 +61,21 @@ export default function EditarTramitePage() {
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [cliente, setCliente] = useState<ClienteData | null>(null)
+  const [clienteId, setClienteId] = useState('')
   const [tramiteConfigs, setTramiteConfigs] = useState<TramiteConfig[]>([])
   const [tasas, setTasas] = useState<Tasa[]>([])
   const [nuevaTasa, setNuevaTasa] = useState({ nombre: '', importe: '' })
   const [servicios, setServicios] = useState<ServicioAnadido[]>([])
-  const [serviciosDisponibles, setServiciosDisponibles] = useState<ServicioAnadir[]>([])
+  const [serviciosDisponibles, setServiciosDisponibles] = useState<ServicioAdicional[]>([])
   const [servicioSeleccionado, setServicioSeleccionado] = useState('')
   const [precioServicio, setPrecioServicio] = useState('')
   const [mostrarFormTasa, setMostrarFormTasa] = useState(false)
   const [mostrarFormServicio, setMostrarFormServicio] = useState(false)
   const [formData, setFormData] = useState<TramiteEditData>({
-    tramiteConfigId: '',
     honorarios: '',
     porcentajeIVA: '21',
     formaPago: '',
-    suplidos: '',
     notas: '',
   })
 
@@ -79,54 +87,39 @@ export default function EditarTramitePage() {
 
   const loadData = async () => {
     try {
-      // Cargar trámite
       const tramiteResponse = await fetch(`/api/tramites/${tramiteId}`)
       if (!tramiteResponse.ok) throw new Error('Error cargando trámite')
       const tramite = await tramiteResponse.json()
 
-      // Cargar configuración de trámites
-      const configResponse = await fetch('/api/admin/tramites-list')
-      if (configResponse.ok) {
-        const configData = await configResponse.json()
-        const tramitesArray = configData.tramites || []
-        setTramiteConfigs(tramitesArray)
-      }
+      setClienteId(tramite.clienteId)
+      setCliente(tramite.cliente)
 
-      // Cargar tasas del trámite
       if (tramite.tasas) {
         setTasas(tramite.tasas)
       }
 
-      // Cargar servicios adicionales del trámite
       const serviciosResponse = await fetch(`/api/servicios-anadidos?tramiteId=${tramiteId}`)
       if (serviciosResponse.ok) {
         const serviciosData = await serviciosResponse.json()
         setServicios(serviciosData || [])
       }
 
-      // Cargar servicios disponibles (genéricos + específicos para este tipo)
       const availableResponse = await fetch('/api/admin/servicios-adicionales-config')
       if (availableResponse.ok) {
         const availableData = await availableResponse.json()
-        // Filtrar servicios genéricos o asignados a este tipo de trámite
         const filtered = availableData.filter((s: any) => {
           if (!s.asignacionesTramites || s.asignacionesTramites.length === 0) {
-            return true // Genérico, disponible para todos
+            return true
           }
-          return s.asignacionesTramites.some(
-            (a: any) => a.tramiteConfig.id === tramite.tramiteConfigId
-          )
+          return s.asignacionesTramites.some((a: any) => a.tramiteConfig.id === tramite.tramiteConfigId)
         })
         setServiciosDisponibles(filtered)
       }
 
-      // Llenar form
       setFormData({
-        tramiteConfigId: tramite.tramiteConfigId || '',
         honorarios: tramite.honorarios?.toString() || '',
         porcentajeIVA: (tramite.porcentajeIVA || 21).toString(),
         formaPago: tramite.formaPago || '',
-        suplidos: tramite.suplidos?.toString() || '',
         notas: tramite.notas || '',
       })
     } catch (error) {
@@ -150,7 +143,6 @@ export default function EditarTramitePage() {
       toast.error('Completa nombre e importe de la tasa')
       return
     }
-
     setTasas([
       ...tasas,
       {
@@ -167,20 +159,7 @@ export default function EditarTramitePage() {
     setTasas(tasas.filter((t) => t.id !== id))
   }
 
-  const updateTasa = (id: string, field: string, value: any) => {
-    setTasas(
-      tasas.map((t) =>
-        t.id === id
-          ? {
-              ...t,
-              [field]: field === 'importe' ? parseFloat(value) : value,
-            }
-          : t
-      )
-    )
-  }
-
-  const addServicio = async () => {
+  const addServicio = () => {
     if (!servicioSeleccionado) {
       toast.error('Selecciona un servicio')
       return
@@ -189,62 +168,27 @@ export default function EditarTramitePage() {
     const servicio = serviciosDisponibles.find((s) => s.id === servicioSeleccionado)
     if (!servicio) return
 
-    try {
-      // Convertir servicio adicional en tasa
-      const precioBase = precioServicio ? parseFloat(precioServicio) : servicio.precioBase
-      const montoIVA = Math.round((precioBase * servicio.porcentajeIVA / 100) * 100) / 100
-      const totalTasa = precioBase + montoIVA + servicio.suplicosBase
+    const precioBase = precioServicio ? parseFloat(precioServicio) : servicio.precioBase
 
-      // Guardar como servicio en BD (para seguimiento)
-      const response = await fetch('/api/servicios-anadidos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tramiteId,
-          servicioId: servicioSeleccionado,
-          precioBase,
-        }),
-      })
+    setServicios([
+      ...servicios,
+      {
+        id: servicioSeleccionado,
+        nombre: servicio.nombre,
+        precioBase,
+        porcentajeIVA: servicio.porcentajeIVA,
+        suplicosBase: servicio.suplicosBase,
+      },
+    ])
 
-      if (!response.ok) throw new Error('Error al añadir servicio')
-
-      // Añadir como tasa
-      setTasas([
-        ...tasas,
-        {
-          id: `tasa-${servicioSeleccionado}-${Date.now()}`,
-          nombre: servicio.nombre,
-          importe: totalTasa,
-        },
-      ])
-
-      setMostrarFormServicio(false)
-      setServicioSeleccionado('')
-      setPrecioServicio('')
-      toast.success('✅ Servicio añadido como tasa')
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Error al añadir servicio')
-    }
+    setMostrarFormServicio(false)
+    setServicioSeleccionado('')
+    setPrecioServicio('')
+    toast.success('✅ Servicio adicional añadido')
   }
 
-  const removeServicio = async (id: string) => {
-    try {
-      const response = await fetch(`/api/servicios-anadidos/${id}`, {
-        method: 'DELETE',
-      })
-
-      if (!response.ok) throw new Error('Error al eliminar')
-
-      setServicios(servicios.filter((s) => s.id !== id))
-      toast.success('✅ Servicio eliminado')
-    } catch (error) {
-      toast.error('Error al eliminar servicio')
-    }
-  }
-
-  const calcularTotalServicio = (precio: number, iva: number, suplidos: number) => {
-    const montoIVA = Math.round((precio * iva / 100) * 100) / 100
-    return precio + montoIVA + suplidos
+  const removeServicio = (servicioId: string) => {
+    setServicios(servicios.filter((s) => s.id !== servicioId))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -256,12 +200,12 @@ export default function EditarTramitePage() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          tipoTramite: formData.tramiteConfigId,
           honorarios: formData.honorarios ? parseFloat(formData.honorarios) : null,
+          porcentajeIVA: parseFloat(formData.porcentajeIVA),
           formaPago: formData.formaPago,
-          suplidos: formData.suplidos ? parseFloat(formData.suplidos) : null,
           notas: formData.notas,
           tasas,
+          servicios,
         }),
       })
 
@@ -286,43 +230,111 @@ export default function EditarTramitePage() {
   const totalServicios = servicios.reduce((sum, s) => sum + s.precioBase, 0)
   const totalSuplidos = tasas.reduce((sum, t) => sum + t.importe, 0)
   const subtotal = honorarios + totalServicios
-  const iva = subtotal * (porcentajeIVA / 100)
+  const iva = Math.round(subtotal * (porcentajeIVA / 100) * 100) / 100
   const total = subtotal + iva + totalSuplidos
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8 p-8 max-w-4xl mx-auto">
-      <div className="mb-8">
+    <form onSubmit={handleSubmit} className="space-y-8">
+      {/* Header */}
+      <div className="p-8">
         <Link href={`/tramites/${tramiteId}`} className="text-blue-600 hover:text-blue-800 text-sm font-semibold">
           ← Volver al Trámite
         </Link>
         <h1 className="text-3xl font-bold text-gray-900 mt-4">Editar Trámite</h1>
       </div>
 
+      {/* Datos de Cliente (Read-only con botón Editar) */}
+      {cliente && (
+        <div className="bg-white rounded-lg shadow p-6 mx-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-gray-900">👤 Datos de Cliente</h2>
+            <Link
+              href={`/clientes/${clienteId}/editar`}
+              className="text-xs px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded transition"
+            >
+              ✏️ Editar Datos Personales
+            </Link>
+          </div>
+          <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <dt className="text-sm font-medium text-gray-600">Nombre</dt>
+              <dd className="text-sm text-gray-900 mt-1">{cliente.nombreCompleto}</dd>
+            </div>
+            <div>
+              <dt className="text-sm font-medium text-gray-600">Documento</dt>
+              <dd className="text-sm text-gray-900 mt-1">{cliente.numeroPasaporte || '—'}</dd>
+            </div>
+            <div>
+              <dt className="text-sm font-medium text-gray-600">Dirección</dt>
+              <dd className="text-sm text-gray-900 mt-1">
+                {cliente.direccion && (
+                  <>
+                    {cliente.direccion}
+                    {cliente.codigoPostal && `, ${cliente.codigoPostal}`}
+                    {cliente.poblacion && ` ${cliente.poblacion}`}
+                  </>
+                ) || '—'}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-sm font-medium text-gray-600">Teléfono</dt>
+              <dd className="text-sm text-gray-900 mt-1">{cliente.telefono || '—'}</dd>
+            </div>
+            <div>
+              <dt className="text-sm font-medium text-gray-600">Email</dt>
+              <dd className="text-sm text-gray-900 mt-1">{cliente.email || '—'}</dd>
+            </div>
+            <div>
+              <dt className="text-sm font-medium text-gray-600">Nacionalidad</dt>
+              <dd className="text-sm text-gray-900 mt-1">{cliente.nacionalidad || '—'}</dd>
+            </div>
+          </dl>
+        </div>
+      )}
+
       {/* Datos del Trámite */}
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="bg-white rounded-lg shadow p-6 mx-8">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">📋 Datos del Trámite</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Trámite *</label>
-            <select
-              name="tramiteConfigId"
-              value={formData.tramiteConfigId}
+            <label htmlFor="honorarios" className="block text-sm font-medium text-gray-700 mb-1">
+              Honorarios (€)
+            </label>
+            <input
+              type="number"
+              id="honorarios"
+              name="honorarios"
+              value={formData.honorarios}
               onChange={handleChange}
-              required
+              step="0.01"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="porcentajeIVA" className="block text-sm font-medium text-gray-700 mb-1">
+              IVA
+            </label>
+            <select
+              id="porcentajeIVA"
+              name="porcentajeIVA"
+              value={formData.porcentajeIVA}
+              onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              <option value="">Seleccionar...</option>
-              {tramiteConfigs.map((config) => (
-                <option key={config.id} value={config.id}>
-                  {config.nombre}
-                </option>
-              ))}
+              <option value="0">Exento</option>
+              <option value="4">4%</option>
+              <option value="10">10%</option>
+              <option value="21">21%</option>
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Forma de Pago</label>
+            <label htmlFor="formaPago" className="block text-sm font-medium text-gray-700 mb-1">
+              Forma de Pago
+            </label>
             <select
+              id="formaPago"
               name="formaPago"
               value={formData.formaPago}
               onChange={handleChange}
@@ -337,36 +349,12 @@ export default function EditarTramitePage() {
             </select>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Honorarios (€)</label>
-            <input
-              type="number"
-              name="honorarios"
-              value={formData.honorarios}
-              onChange={handleChange}
-              step="0.01"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">IVA</label>
-            <select
-              name="porcentajeIVA"
-              value={formData.porcentajeIVA}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="0">Exento</option>
-              <option value="4">4%</option>
-              <option value="10">10%</option>
-              <option value="21">21%</option>
-            </select>
-          </div>
-
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notas</label>
+            <label htmlFor="notas" className="block text-sm font-medium text-gray-700 mb-1">
+              Notas
+            </label>
             <textarea
+              id="notas"
               name="notas"
               value={formData.notas}
               onChange={handleChange}
@@ -378,42 +366,53 @@ export default function EditarTramitePage() {
         </div>
       </div>
 
-      {/* Suplidos - Tasas y Servicios Adicionales */}
-      <div className="bg-white rounded-lg shadow p-6">
+      {/* Suplidos */}
+      <div className="bg-white rounded-lg shadow p-6 mx-8">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">💰 Suplidos</h2>
 
+        {servicios.length > 0 && (
+          <div className="bg-blue-50 rounded-lg p-4 mb-6">
+            <h3 className="font-semibold text-gray-900 mb-3">Servicios Adicionales:</h3>
+            <div className="space-y-2">
+              {servicios.map((servicio) => (
+                <div key={servicio.id} className="flex items-center justify-between bg-white p-3 rounded border border-blue-200">
+                  <div>
+                    <p className="font-medium text-gray-900">{servicio.nombre}</p>
+                    <p className="text-sm text-gray-600">€{servicio.precioBase.toFixed(2)} (IVA: {servicio.porcentajeIVA}%)</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeServicio(servicio.id)}
+                    className="text-red-600 hover:text-red-800 font-semibold"
+                  >
+                    🗑️
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {tasas.length > 0 && (
-          <div className="mb-6 space-y-3">
-            {tasas.map((tasa) => (
-              <div key={tasa.id} className="flex gap-3 items-end bg-gray-50 p-3 rounded border border-gray-200">
-                <div className="flex-1">
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Nombre</label>
-                  <input
-                    type="text"
-                    value={tasa.nombre}
-                    onChange={(e) => updateTasa(tasa.id, 'nombre', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
-                  />
+          <div className="bg-gray-50 rounded-lg p-4 mb-6">
+            <h3 className="font-semibold text-gray-900 mb-3">Tasas añadidas:</h3>
+            <div className="space-y-2">
+              {tasas.map((tasa) => (
+                <div key={tasa.id} className="flex items-center justify-between bg-white p-3 rounded border border-gray-200">
+                  <div>
+                    <p className="font-medium text-gray-900">{tasa.nombre}</p>
+                    <p className="text-sm text-gray-600">€{tasa.importe.toFixed(2)}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeTasa(tasa.id)}
+                    className="text-red-600 hover:text-red-800 font-semibold"
+                  >
+                    🗑️
+                  </button>
                 </div>
-                <div className="w-32">
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Importe (€)</label>
-                  <input
-                    type="number"
-                    value={tasa.importe}
-                    onChange={(e) => updateTasa(tasa.id, 'importe', e.target.value)}
-                    step="0.01"
-                    className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => removeTasa(tasa.id)}
-                  className="px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 font-semibold rounded"
-                >
-                  🗑️
-                </button>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
 
@@ -533,69 +532,8 @@ export default function EditarTramitePage() {
         </div>
       </div>
 
-      {/* Modal para añadir servicio - DEPRECATED */}
-      {false && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Añadir Servicio Adicional</h3>
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Servicio *</label>
-              <select
-                value={servicioSeleccionado}
-                onChange={(e) => setServicioSeleccionado(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-              >
-                <option value="">Seleccionar servicio...</option>
-                {serviciosDisponibles.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.nombre} ({s.precioBase.toFixed(2)}€)
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {servicioSeleccionado && (
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Precio (€) - Opcional</label>
-                <input
-                  type="number"
-                  value={precioServicio}
-                  onChange={(e) => setPrecioServicio(e.target.value)}
-                  step="0.01"
-                  placeholder="Dejar en blanco para usar precio del servicio"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                />
-              </div>
-            )}
-
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={addServicio}
-                className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition"
-              >
-                ✅ Añadir
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setMostrarFormServicio(false)
-                  setServicioSeleccionado('')
-                  setPrecioServicio('')
-                }}
-                className="flex-1 px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold rounded-lg transition"
-              >
-                ✕ Cancelar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-
       {/* Resumen de Precios */}
-      <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg shadow p-6">
+      <div className="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-300 rounded-lg p-6 mx-8">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">📊 Resumen de Precios</h2>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <div className="bg-white rounded p-3">
@@ -622,20 +560,21 @@ export default function EditarTramitePage() {
       </div>
 
       {/* Botones */}
-      <div className="flex gap-4">
+      <div className="flex gap-4 pt-6 border-t mx-8 pb-8">
         <button
           type="submit"
           disabled={saving}
-          className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold rounded-lg transition"
+          className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-3 px-6 rounded-lg transition"
         >
-          {saving ? 'Guardando...' : '✅ Guardar Cambios'}
+          {saving ? 'Guardando...' : 'Guardar Cambios'}
         </button>
-        <Link
-          href={`/tramites/${tramiteId}`}
-          className="px-6 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold rounded-lg transition"
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="px-6 py-3 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition"
         >
           Cancelar
-        </Link>
+        </button>
       </div>
     </form>
   )
