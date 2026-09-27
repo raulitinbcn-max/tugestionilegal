@@ -77,35 +77,48 @@ export default function PlantillasTab() {
       }
 
       // Load registered plantillas
-      const registradasResponse = await fetch('/api/admin/plantillas-registradas')
-      if (registradasResponse.ok) {
-        const registradasData = await registradasResponse.json()
-        console.log('[PlantillasTab] registradasData:', registradasData, 'isArray:', Array.isArray(registradasData))
-        const registradas = Array.isArray(registradasData) ? registradasData : []
-        setPlantillasRegistradas(registradas)
-      } else {
-        console.warn('[PlantillasTab] Error fetching registradas:', registradasResponse.status)
+      try {
+        const registradasResponse = await fetch('/api/admin/plantillas-registradas')
+        if (registradasResponse.ok) {
+          const registradasData = await registradasResponse.json()
+          const registradas = Array.isArray(registradasData) ? registradasData : (registradasData?.plantillas || [])
+          setPlantillasRegistradas(registradas)
+        } else {
+          setPlantillasRegistradas([])
+        }
+      } catch (e) {
+        console.error('[PlantillasTab] Error loading registradas:', e)
         setPlantillasRegistradas([])
       }
 
       // Load categorias
-      const categoriasResponse = await fetch('/api/admin/categorias-tramite')
-      if (categoriasResponse.ok) {
-        const categoriasData = await categoriasResponse.json()
-        console.log('[PlantillasTab] categoriasData:', categoriasData, 'isArray:', Array.isArray(categoriasData))
-        const categorias = Array.isArray(categoriasData) ? categoriasData : []
-        setCategorias(categorias)
-      } else {
-        console.warn('[PlantillasTab] Error fetching categorias:', categoriasResponse.status)
+      try {
+        const categoriasResponse = await fetch('/api/admin/categorias-tramite')
+        if (categoriasResponse.ok) {
+          const categoriasData = await categoriasResponse.json()
+          const categorias = Array.isArray(categoriasData) ? categoriasData : (categoriasData?.categorias || [])
+          setCategorias(categorias)
+        } else {
+          setCategorias([])
+        }
+      } catch (e) {
+        console.error('[PlantillasTab] Error loading categorias:', e)
         setCategorias([])
       }
 
       // Load tramites config - use dedicated endpoint for proper format
-      const tramitesResponse = await fetch('/api/admin/tramites-list')
-      if (tramitesResponse.ok) {
-        const tramitesData = await tramitesResponse.json()
-        // Use the tramitesMap from endpoint, already properly formatted
-        setTramitesConfig(tramitesData.tramitesMap || {})
+      try {
+        const tramitesResponse = await fetch('/api/admin/tramites-list')
+        if (tramitesResponse.ok) {
+          const tramitesData = await tramitesResponse.json()
+          // Use the tramitesMap from endpoint, already properly formatted
+          setTramitesConfig(tramitesData.tramitesMap || {})
+        } else {
+          setTramitesConfig({})
+        }
+      } catch (e) {
+        console.error('[PlantillasTab] Error loading tramites:', e)
+        setTramitesConfig({})
       }
     } catch (error) {
       console.error('Error cargando:', error)
