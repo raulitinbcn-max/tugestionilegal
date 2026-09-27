@@ -191,24 +191,38 @@ export default function EditarTramitePage() {
     if (!servicio) return
 
     try {
+      // Convertir servicio adicional en tasa
+      const precioBase = precioServicio ? parseFloat(precioServicio) : servicio.precioBase
+      const montoIVA = Math.round((precioBase * servicio.porcentajeIVA / 100) * 100) / 100
+      const totalTasa = precioBase + montoIVA + servicio.suplicosBase
+
+      // Guardar como servicio en BD (para seguimiento)
       const response = await fetch('/api/servicios-anadidos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tramiteId,
           servicioId: servicioSeleccionado,
-          precioBase: precioServicio ? parseFloat(precioServicio) : undefined,
+          precioBase,
         }),
       })
 
       if (!response.ok) throw new Error('Error al añadir servicio')
 
-      const nuevoServicio = await response.json()
-      setServicios([...servicios, nuevoServicio])
+      // Añadir como tasa
+      setTasas([
+        ...tasas,
+        {
+          id: `tasa-${servicioSeleccionado}-${Date.now()}`,
+          nombre: servicio.nombre,
+          importe: totalTasa,
+        },
+      ])
+
       setMostrarModalServicio(false)
       setServicioSeleccionado('')
       setPrecioServicio('')
-      toast.success('✅ Servicio añadido')
+      toast.success('✅ Servicio añadido como tasa')
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Error al añadir servicio')
     }
@@ -359,52 +373,7 @@ export default function EditarTramitePage() {
         </div>
       </div>
 
-      {/* Servicios Adicionales */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">🛠️ Servicios Adicionales</h2>
-
-        {servicios.length > 0 && (
-          <div className="mb-6 space-y-3">
-            {servicios.map((servicio) => (
-              <div key={servicio.id} className="flex gap-3 items-end bg-gray-50 p-3 rounded border border-gray-200">
-                <div className="flex-1">
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Servicio</label>
-                  <p className="text-sm font-medium text-gray-900">{servicio.nombre}</p>
-                </div>
-                <div className="w-32">
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Precio (€)</label>
-                  <p className="text-sm font-medium text-gray-900">{servicio.precioBase}</p>
-                </div>
-                <div className="w-32">
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Total (€)</label>
-                  <p className="text-sm font-bold text-blue-600">
-                    {calcularTotalServicio(
-                      servicio.precioBase,
-                      servicio.porcentajeIVA,
-                      servicio.suplicosBase
-                    ).toFixed(2)}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => removeServicio(servicio.id)}
-                  className="px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 font-semibold rounded"
-                >
-                  🗑️
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <button
-          type="button"
-          onClick={() => setMostrarModalServicio(true)}
-          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition text-sm"
-        >
-          ➕ Añadir Servicio
-        </button>
-      </div>
+      {/* Servicios Adicionales - Hidden, pero el botón está en Tasas */}
 
       {/* Modal para añadir servicio */}
       {mostrarModalServicio && (
@@ -466,9 +435,9 @@ export default function EditarTramitePage() {
         </div>
       )}
 
-      {/* Tasas */}
+      {/* Tasas y Servicios Adicionales */}
       <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">💰 Tasas</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">💰 Tasas y Servicios</h2>
 
         {tasas.length > 0 && (
           <div className="mb-6 space-y-3">
@@ -505,28 +474,38 @@ export default function EditarTramitePage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          <input
-            type="text"
-            value={nuevaTasa.nombre}
-            onChange={(e) => setNuevaTasa({ ...nuevaTasa, nombre: e.target.value })}
-            placeholder="Nombre de tasa"
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-          />
-          <input
-            type="number"
-            value={nuevaTasa.importe}
-            onChange={(e) => setNuevaTasa({ ...nuevaTasa, importe: e.target.value })}
-            placeholder="Importe"
-            step="0.01"
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-          />
+        <div className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <input
+              type="text"
+              value={nuevaTasa.nombre}
+              onChange={(e) => setNuevaTasa({ ...nuevaTasa, nombre: e.target.value })}
+              placeholder="Nombre de tasa"
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+            />
+            <input
+              type="number"
+              value={nuevaTasa.importe}
+              onChange={(e) => setNuevaTasa({ ...nuevaTasa, importe: e.target.value })}
+              placeholder="Importe"
+              step="0.01"
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+            />
+            <button
+              type="button"
+              onClick={addTasa}
+              className="col-span-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition text-sm"
+            >
+              ➕ Agregar Tasa
+            </button>
+          </div>
+
           <button
             type="button"
-            onClick={addTasa}
-            className="col-span-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition text-sm"
+            onClick={() => setMostrarModalServicio(true)}
+            className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition text-sm"
           >
-            ➕ Agregar Tasa
+            ➕ Añadir Servicio Adicional
           </button>
         </div>
       </div>
