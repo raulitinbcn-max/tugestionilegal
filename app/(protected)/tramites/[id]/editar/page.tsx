@@ -65,6 +65,7 @@ export default function EditarTramitePage() {
   const [formData, setFormData] = useState<TramiteEditData>({
     tramiteConfigId: '',
     honorarios: '',
+    porcentajeIVA: '21',
     formaPago: '',
     suplidos: '',
     notas: '',
