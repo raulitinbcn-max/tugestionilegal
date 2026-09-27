@@ -124,7 +124,7 @@ export default function EditarTramitePage() {
       setFormData({
         tramiteConfigId: tramite.tramiteConfigId || '',
         honorarios: tramite.honorarios?.toString() || '',
-        porcentajeIVA: '21',
+        porcentajeIVA: (tramite.porcentajeIVA || 21).toString(),
         formaPago: tramite.formaPago || '',
         suplidos: tramite.suplidos?.toString() || '',
         notas: tramite.notas || '',
