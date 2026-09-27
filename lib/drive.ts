@@ -76,15 +76,28 @@ export async function listFiles(folderId: string, query?: string) {
   const baseQuery = `'${folderId}' in parents and trashed = false`
   const fullQuery = query ? `${baseQuery} and ${query}` : baseQuery
 
-  const response = await drive.files.list({
-    q: fullQuery,
-    spaces: 'drive',
-    fields: 'files(id, name, mimeType, createdTime, modifiedTime)',
-    pageSize: 100,
-    supportsAllDrives: true,
-  })
+  console.log('[DRIVE] listFiles called with:', { folderId, hasQuery: !!query })
 
-  return response.data.files || []
+  try {
+    const response = await drive.files.list({
+      q: fullQuery,
+      spaces: 'drive',
+      fields: 'files(id, name, mimeType, createdTime, modifiedTime)',
+      pageSize: 100,
+      supportsAllDrives: true,
+    })
+
+    console.log('[DRIVE] Files found:', response.data.files?.length || 0)
+    return response.data.files || []
+  } catch (error: any) {
+    console.error('[DRIVE] listFiles error:', {
+      message: error?.message,
+      status: error?.status,
+      code: error?.code,
+      folderId
+    })
+    throw error
+  }
 }
 
 export async function moveFile(fileId: string, newParentId: string, removeParentId?: string) {

@@ -62,14 +62,24 @@ export default function PlantillasTab() {
     try {
       // Load plantillas from Google Drive
       const response = await fetch('/api/admin/list-plantillas-drive')
-      if (response.ok) {
-        const data = await response.json()
+      const data = await response.json()
 
+      console.log('[PlantillasTab] Response from list-plantillas-drive:', {
+        ok: response.ok,
+        status: response.status,
+        dataKeys: Object.keys(data),
+        plantillasCount: data.plantillas?.length || 0,
+        error: data.error
+      })
+
+      if (response.ok) {
         if (data.error) {
           console.warn('Aviso al cargar plantillas de Drive:', data.error)
         }
 
-        setPlantillasDisponibles(Array.isArray(data.plantillas) ? data.plantillas : [])
+        const plantillas = Array.isArray(data.plantillas) ? data.plantillas : []
+        console.log('[PlantillasTab] Plantillas disponibles:', plantillas)
+        setPlantillasDisponibles(plantillas)
       } else {
         console.warn('Error cargando plantillas de Drive:', response.status)
         setPlantillasDisponibles([])
