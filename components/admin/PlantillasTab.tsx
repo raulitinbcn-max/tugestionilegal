@@ -382,12 +382,16 @@ export default function PlantillasTab() {
                       <td className="px-6 py-4 text-right">
                         <button
                           onClick={() => {
+                            if (Object.keys(tramitesConfig).length === 0) {
+                              toast.error('Configura trámites primero')
+                              return
+                            }
                             // Crear un objeto de referencia siempre (incluso si no hay asociaciones)
                             const referencia = plantilla.asociaciones[0] || {
                               id: `ref-${plantilla.nombre}`,
                               nombre: plantilla.nombre,
                               tipo: plantilla.tipo || 'mandato',
-                              tipoTramite: Object.keys(tramitesConfig)[0] || '',
+                              tipoTramite: Object.keys(tramitesConfig)[0],
                               driveFileId: plantilla.driveFileId,
                             }
                             setEditingAsociacion(referencia)
