@@ -117,10 +117,17 @@ return (
               </a>
             ))}
             {documentosDelDrive
-              .filter((doc) =>
-                // Excluir documentos generados (que tienen nombres como TR-XXXXX_tipo)
-                !tramite.documentosGenerados.some((gen) => gen.driveFileId === doc.id)
-              )
+              .filter((doc) => {
+                // Excluir documentos generados
+                if (tramite.documentosGenerados.some((gen) => gen.driveFileId === doc.id)) {
+                  return false
+                }
+                // Excluir documentos ya registrados en la BD
+                if (tramite.documentos.some((d) => d.driveFileId === doc.id)) {
+                  return false
+                }
+                return true
+              })
               .map((doc) => (
                 <a
                   key={doc.id}
