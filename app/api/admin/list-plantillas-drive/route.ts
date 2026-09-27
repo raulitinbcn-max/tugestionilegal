@@ -22,11 +22,20 @@ export async function GET(req: NextRequest) {
     }
 
     console.log('[PLANTILLAS] Buscando en carpeta:', plantillasFolderId)
+    console.log('[PLANTILLAS] Sesión:', { user: (session as any).user?.email, hasAccessToken: !!(session as any).accessToken })
 
     // Listar archivos de Google Docs en la carpeta de plantillas
     const files = await listFiles(plantillasFolderId, "mimeType = 'application/vnd.google-apps.document'")
 
     console.log('[PLANTILLAS] Encontradas:', files.length, 'documentos')
+    if (files.length === 0) {
+      console.log('[PLANTILLAS] Listando TODOS los archivos en la carpeta para debug...')
+      const allFiles = await listFiles(plantillasFolderId)
+      console.log('[PLANTILLAS] Archivos totales en carpeta:', allFiles.length)
+      allFiles.forEach((f: any) => {
+        console.log(`[PLANTILLAS] - ${f.name} (${f.mimeType})`)
+      })
+    }
 
     const plantillas = files.map((file: any) => ({
       id: file.id,
