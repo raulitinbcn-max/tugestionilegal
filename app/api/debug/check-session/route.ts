@@ -5,12 +5,13 @@ import { NextResponse } from 'next/server'
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
+    const sessionAny = session as any
 
     return NextResponse.json({
       hasSession: !!session,
       user: session?.user,
-      hasAccessToken: !!session?.accessToken,
-      accessTokenLength: session?.accessToken ? session.accessToken.length : 0,
+      hasAccessToken: !!sessionAny?.accessToken,
+      accessTokenLength: sessionAny?.accessToken ? sessionAny.accessToken.length : 0,
       sessionKeys: Object.keys(session || {}),
     })
   } catch (error: any) {
