@@ -34,6 +34,7 @@ export async function POST(req: NextRequest) {
       provincia,
       email,
       telefono,
+      profesion,
       situacionActual,
       tipoTramite,
       honorarios,
@@ -73,6 +74,7 @@ export async function POST(req: NextRequest) {
           provincia: provincia || null,
           email: email || null,
           telefono: telefono || null,
+          profesion: profesion || null,
           situacionActual: situacionActual || null,
         },
       })
@@ -94,6 +96,7 @@ export async function POST(req: NextRequest) {
           poblacion: poblacion || null,
           provincia: provincia || null,
           telefono: telefono || null,
+          profesion: profesion || null,
           situacionActual: situacionActual || null,
         },
       })

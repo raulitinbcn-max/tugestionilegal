@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { formatEuro } from '@/lib/format'
+import { getLocationFromPostalCode } from '@/lib/postal-codes'
 
 const FORMAS_PAGO = ['Efectivo', 'Transferencia', 'Tarjeta', 'Cheque']
 
@@ -50,6 +51,7 @@ interface FormData {
   provincia: string
   email: string
   telefono: string
+  profesion: string
   situacionActual: string
   tipoTramite: string
   honorarios: string
@@ -100,6 +102,7 @@ export default function TramiteForm() {
     provincia: '',
     email: '',
     telefono: '',
+    profesion: '',
     situacionActual: '',
     tipoTramite: '',
     honorarios: '',
@@ -191,6 +194,7 @@ export default function TramiteForm() {
           provincia: cliente.provincia || '',
           email: cliente.email || '',
           telefono: cliente.telefono || '',
+          profesion: cliente.profesion || '',
           situacionActual: cliente.situacionActual || '',
         }))
         // Establecer búsqueda de nacionalidad si existe
@@ -267,6 +271,20 @@ export default function TramiteForm() {
             }
             return acc + digit
           }, '')
+      }
+    }
+
+    // Autocompletar población y provincia según código postal
+    if (name === 'codigoPostal' && value.length === 5) {
+      const location = getLocationFromPostalCode(value)
+      if (location) {
+        setFormData((prev) => ({
+          ...prev,
+          [name]: processedValue,
+          poblacion: location.poblacion,
+          provincia: location.provincia,
+        }))
+        return
       }
     }
 
@@ -641,6 +659,7 @@ export default function TramiteForm() {
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="08002"
+              maxLength={5}
             />
           </div>
 
@@ -656,6 +675,7 @@ export default function TramiteForm() {
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Barcelona"
+              readOnly={formData.codigoPostal.length === 5}
             />
           </div>
 
@@ -671,6 +691,22 @@ export default function TramiteForm() {
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Barcelona"
+              readOnly={formData.codigoPostal.length === 5}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="profesion" className="block text-sm font-medium text-gray-700 mb-1">
+              Profesión
+            </label>
+            <input
+              type="text"
+              id="profesion"
+              name="profesion"
+              value={formData.profesion}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Campo libre"
             />
           </div>
 

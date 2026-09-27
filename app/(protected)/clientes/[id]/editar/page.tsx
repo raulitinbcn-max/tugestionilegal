@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 import { validarDocumento, PAISES } from '@/lib/documento-validator'
+import { getLocationFromPostalCode } from '@/lib/postal-codes'
 
 interface Pais {
   id: string
@@ -119,6 +120,20 @@ export default function EditarClientePage() {
             }
             return acc + digit
           }, '')
+      }
+    }
+
+    // Autocompletar población y provincia según código postal
+    if (name === 'codigoPostal' && processedValue.length === 5) {
+      const location = getLocationFromPostalCode(processedValue)
+      if (location) {
+        setFormData((prev) => ({
+          ...prev,
+          [name]: processedValue,
+          poblacion: location.poblacion,
+          provincia: location.provincia,
+        }))
+        return
       }
     }
 
@@ -533,6 +548,7 @@ export default function EditarClientePage() {
                 value={formData.codigoPostal || ''}
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                maxLength={5}
               />
             </div>
 
@@ -547,6 +563,7 @@ export default function EditarClientePage() {
                 value={formData.poblacion || ''}
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                readOnly={formData.codigoPostal && (formData.codigoPostal as string).length === 5}
               />
             </div>
 
@@ -561,6 +578,7 @@ export default function EditarClientePage() {
                 value={formData.provincia || ''}
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                readOnly={formData.codigoPostal && (formData.codigoPostal as string).length === 5}
               />
             </div>
           </div>
