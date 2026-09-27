@@ -93,6 +93,25 @@ export default function VencimientosPage() {
 
   const updateVencimiento = (index: number, field: string, value: any) => {
     const updated = [...vencimientos]
+
+    // Si se cambia el importe, recalcular proporcionalmente
+    if (field === 'importe' && vencimientos.length > 1) {
+      const oldImporte = updated[index].importe
+      const newImporte = parseFloat(value)
+      const diferencia = newImporte - oldImporte
+
+      // Distribuir la diferencia entre las demás cuotas
+      const otrasQuotas = vencimientos.length - 1
+      const ajustePorCuota = Math.round((diferencia / otrasQuotas) * 100) / 100
+
+      // Aplicar ajuste a todas las cuotas excepto la actual
+      for (let i = 0; i < updated.length; i++) {
+        if (i !== index) {
+          updated[i].importe = Math.round((updated[i].importe - ajustePorCuota) * 100) / 100
+        }
+      }
+    }
+
     updated[index] = { ...updated[index], [field]: value }
     setVencimientos(updated)
   }
@@ -204,6 +223,30 @@ export default function VencimientosPage() {
               {modoTabla ? '👁️ Vista' : '✏️ Editar'}
             </button>
           </div>
+
+          {/* Sumario de totales */}
+          {vencimientos.length > 0 && (
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="grid grid-cols-3 gap-4 text-sm">
+                <div>
+                  <p className="text-gray-600">Total Esperado</p>
+                  <p className="text-lg font-bold text-gray-900">{formatEuro(total)}</p>
+                </div>
+                <div>
+                  <p className="text-gray-600">Total Actual</p>
+                  <p className={`text-lg font-bold ${Math.abs(vencimientos.reduce((sum, v) => sum + v.importe, 0) - total) < 0.01 ? 'text-green-600' : 'text-red-600'}`}>
+                    {formatEuro(vencimientos.reduce((sum, v) => sum + v.importe, 0))}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-600">Diferencia</p>
+                  <p className={`text-lg font-bold ${Math.abs(vencimientos.reduce((sum, v) => sum + v.importe, 0) - total) < 0.01 ? 'text-green-600' : 'text-red-600'}`}>
+                    {formatEuro(vencimientos.reduce((sum, v) => sum + v.importe, 0) - total)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {!modoTabla ? (
             <div className="space-y-3">
