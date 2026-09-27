@@ -85,11 +85,30 @@ export default function TramiteForm() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Cargar configuración de trámites
-        const configResponse = await fetch('/api/admin/tramites-config')
+        // Cargar configuración de trámites desde el nuevo endpoint unificado
+        const configResponse = await fetch('/api/admin/tramites-list')
         if (configResponse.ok) {
           const configData = await configResponse.json()
-          setTramitesConfig(configData.configs || {})
+          const tramitesArray = configData.tramites || []
+
+          // Convert to map format for compatibility
+          const tramitesMap: Record<string, TramiteConfig> = {}
+          tramitesArray.forEach((t: any) => {
+            tramitesMap[t.tipoTramite] = {
+              nombre: t.nombre,
+              descripcion: t.descripcion,
+            }
+          })
+          setTramitesConfig(tramitesMap)
+
+          // Cargar tasas del primer tipo de trámite por defecto
+          if (tramitesArray.length > 0) {
+            await loadTasasPorTramite(tramitesArray[0].tipoTramite)
+            setFormData((prev) => ({
+              ...prev,
+              tipoTramite: tramitesArray[0].tipoTramite,
+            }))
+          }
         }
 
         // Cargar datos del cliente si viene clienteId
@@ -110,19 +129,6 @@ export default function TramiteForm() {
               email: cliente.email || '',
               telefono: cliente.telefono || '',
               situacionActual: cliente.situacionActual || '',
-            }))
-          }
-        }
-
-        // Cargar tasas del primer tipo de trámite por defecto
-        if (configResponse.ok) {
-          const configData = await configResponse.json()
-          const tiposDisponibles = Object.keys(configData?.configs || {})
-          if (tiposDisponibles.length > 0) {
-            await loadTasasPorTramite(tiposDisponibles[0])
-            setFormData((prev) => ({
-              ...prev,
-              tipoTramite: tiposDisponibles[0],
             }))
           }
         }
