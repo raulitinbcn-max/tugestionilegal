@@ -10,6 +10,11 @@ interface ServicioAdicional {
   precioBase: number
   porcentajeIVA: number
   suplicosBase: number
+  total: number
+  tramiteConfigId?: string | null
+  tramiteConfig?: {
+    nombre: string
+  } | null
   activo: boolean
 }
 
@@ -21,7 +26,6 @@ interface TramiteConfig {
 
 export default function ServiciosAdicionalesTab() {
   const [tramitesConfig, setTramitesConfig] = useState<TramiteConfig[]>([])
-  const [selectedTramite, setSelectedTramite] = useState<string>('')
   const [servicios, setServicios] = useState<ServicioAdicional[]>([])
   const [loading, setLoading] = useState(true)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -29,46 +33,27 @@ export default function ServiciosAdicionalesTab() {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    loadTramitesConfig()
+    loadData()
   }, [])
 
-  useEffect(() => {
-    if (selectedTramite) {
-      loadServicios()
-    }
-  }, [selectedTramite])
-
-  const loadTramitesConfig = async () => {
+  const loadData = async () => {
     try {
-      const response = await fetch('/api/admin/tramites-list')
-      if (response.ok) {
-        const data = await response.json()
-        const tramites = data.tramites || []
-        setTramitesConfig(tramites)
-        if (tramites.length > 0) {
-          setSelectedTramite(tramites[0].tipoTramite)
-        }
-      }
-    } catch (error) {
-      console.error('Error cargando trámites:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const loadServicios = async () => {
-    try {
-      const tramiteConfig = tramitesConfig.find((t) => t.tipoTramite === selectedTramite)
-      if (!tramiteConfig) return
-
-      const response = await fetch(`/api/admin/servicios-adicionales-config?tramiteConfigId=${tramiteConfig.id}`)
+      const response = await fetch('/api/admin/servicios-adicionales-config')
       if (response.ok) {
         const data = await response.json()
         setServicios(data || [])
       }
+
+      const tramitesResponse = await fetch('/api/admin/tramites-list')
+      if (tramitesResponse.ok) {
+        const tramitesData = await tramitesResponse.json()
+        setTramitesConfig(tramitesData.tramites || [])
+      }
     } catch (error) {
-      console.error('Error cargando servicios:', error)
-      toast.error('Error cargando servicios')
+      console.error('Error cargando datos:', error)
+      toast.error('Error cargando datos')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -80,6 +65,7 @@ export default function ServiciosAdicionalesTab() {
       precioBase: 0,
       porcentajeIVA: 21,
       suplicosBase: 0,
+      tramiteConfigId: null,
       activo: true,
     })
   }
@@ -102,17 +88,11 @@ export default function ServiciosAdicionalesTab() {
 
     setSaving(true)
     try {
-      const tramiteConfig = tramitesConfig.find((t) => t.tipoTramite === selectedTramite)
-      if (!tramiteConfig) return
-
       if (editingId === 'nuevo') {
         const response = await fetch('/api/admin/servicios-adicionales-config', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            tramiteConfigId: tramiteConfig.id,
-            ...formData,
-          }),
+          body: JSON.stringify(formData),
         })
 
         if (!response.ok) throw new Error('Error al crear')
@@ -130,7 +110,7 @@ export default function ServiciosAdicionalesTab() {
 
       setEditingId(null)
       setFormData({})
-      await loadServicios()
+      await loadData()
     } catch (error) {
       toast.error('Error al guardar servicio')
     } finally {
@@ -148,7 +128,7 @@ export default function ServiciosAdicionalesTab() {
 
       if (!response.ok) throw new Error('Error al eliminar')
       toast.success('✅ Servicio eliminado')
-      await loadServicios()
+      await loadData()
     } catch (error) {
       toast.error('Error al eliminar')
     }
@@ -156,29 +136,11 @@ export default function ServiciosAdicionalesTab() {
 
   if (loading) return <div className="p-8">Cargando...</div>
 
-  const tramiteConfig = tramitesConfig.find((t) => t.tipoTramite === selectedTramite)
-
   return (
     <div className="p-8">
       <div className="mb-6">
         <h2 className="text-xl font-semibold text-gray-900 mb-2">🛠️ Servicios Adicionales</h2>
-        <p className="text-gray-600 text-sm">Configura servicios adicionales por tipo de trámite</p>
-      </div>
-
-      {/* Selector de trámite */}
-      <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Trámite</label>
-        <select
-          value={selectedTramite}
-          onChange={(e) => setSelectedTramite(e.target.value)}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-        >
-          {tramitesConfig.map((t) => (
-            <option key={t.id} value={t.tipoTramite}>
-              {t.nombre}
-            </option>
-          ))}
-        </select>
+        <p className="text-gray-600 text-sm">Configura servicios adicionales genéricos o asociados a tipos de trámites específicos</p>
       </div>
 
       {/* Tabla de servicios */}
@@ -187,10 +149,11 @@ export default function ServiciosAdicionalesTab() {
           <thead className="bg-gray-50 border-b">
             <tr>
               <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Nombre</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Precio Base</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">IVA %</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Precio</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">IVA</th>
               <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Suplidos</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Activo</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Total</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Trámite</th>
               <th className="px-6 py-3 text-right text-sm font-semibold text-gray-900">Acciones</th>
             </tr>
           </thead>
@@ -213,7 +176,7 @@ export default function ServiciosAdicionalesTab() {
                     value={formData.precioBase || ''}
                     onChange={(e) => setFormData({ ...formData, precioBase: parseFloat(e.target.value) })}
                     placeholder="0.00"
-                    className="w-20 px-2 py-1 border border-gray-300 rounded"
+                    className="w-24 px-2 py-1 border border-gray-300 rounded"
                   />
                 </td>
                 <td className="px-6 py-3">
@@ -231,16 +194,32 @@ export default function ServiciosAdicionalesTab() {
                     value={formData.suplicosBase || ''}
                     onChange={(e) => setFormData({ ...formData, suplicosBase: parseFloat(e.target.value) })}
                     placeholder="0.00"
-                    className="w-20 px-2 py-1 border border-gray-300 rounded"
+                    className="w-24 px-2 py-1 border border-gray-300 rounded"
                   />
                 </td>
+                <td className="px-6 py-3 text-sm font-semibold">
+                  {formData.precioBase !== undefined
+                    ? (
+                        formData.precioBase +
+                        (formData.precioBase * (formData.porcentajeIVA || 21)) / 100 +
+                        (formData.suplicosBase || 0)
+                      ).toFixed(2)
+                    : '0.00'}
+                  €
+                </td>
                 <td className="px-6 py-3">
-                  <input
-                    type="checkbox"
-                    checked={formData.activo !== false}
-                    onChange={(e) => setFormData({ ...formData, activo: e.target.checked })}
-                    className="w-4 h-4"
-                  />
+                  <select
+                    value={formData.tramiteConfigId || ''}
+                    onChange={(e) => setFormData({ ...formData, tramiteConfigId: e.target.value || null })}
+                    className="px-2 py-1 border border-gray-300 rounded text-sm"
+                  >
+                    <option value="">Genérico (todos)</option>
+                    {tramitesConfig.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.nombre}
+                      </option>
+                    ))}
+                  </select>
                 </td>
                 <td className="px-6 py-3 text-right">
                   <button
@@ -248,12 +227,9 @@ export default function ServiciosAdicionalesTab() {
                     disabled={saving}
                     className="px-3 py-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white text-sm rounded mr-2"
                   >
-                    ✅ Guardar
+                    ✅
                   </button>
-                  <button
-                    onClick={handleCancelar}
-                    className="px-3 py-1 bg-gray-300 hover:bg-gray-400 text-gray-800 text-sm rounded"
-                  >
+                  <button onClick={handleCancelar} className="px-3 py-1 bg-gray-300 hover:bg-gray-400 text-gray-800 text-sm rounded">
                     ✕
                   </button>
                 </td>
@@ -277,7 +253,7 @@ export default function ServiciosAdicionalesTab() {
                       step="0.01"
                       value={formData.precioBase || ''}
                       onChange={(e) => setFormData({ ...formData, precioBase: parseFloat(e.target.value) })}
-                      className="w-20 px-2 py-1 border border-gray-300 rounded"
+                      className="w-24 px-2 py-1 border border-gray-300 rounded"
                     />
                   </td>
                   <td className="px-6 py-3">
@@ -294,16 +270,23 @@ export default function ServiciosAdicionalesTab() {
                       step="0.01"
                       value={formData.suplicosBase || ''}
                       onChange={(e) => setFormData({ ...formData, suplicosBase: parseFloat(e.target.value) })}
-                      className="w-20 px-2 py-1 border border-gray-300 rounded"
+                      className="w-24 px-2 py-1 border border-gray-300 rounded"
                     />
                   </td>
+                  <td className="px-6 py-3 text-sm font-semibold">{formData.total || servicio.total}€</td>
                   <td className="px-6 py-3">
-                    <input
-                      type="checkbox"
-                      checked={formData.activo !== false}
-                      onChange={(e) => setFormData({ ...formData, activo: e.target.checked })}
-                      className="w-4 h-4"
-                    />
+                    <select
+                      value={formData.tramiteConfigId || ''}
+                      onChange={(e) => setFormData({ ...formData, tramiteConfigId: e.target.value || null })}
+                      className="px-2 py-1 border border-gray-300 rounded text-sm"
+                    >
+                      <option value="">Genérico (todos)</option>
+                      {tramitesConfig.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.nombre}
+                        </option>
+                      ))}
+                    </select>
                   </td>
                   <td className="px-6 py-3 text-right">
                     <button
@@ -311,7 +294,7 @@ export default function ServiciosAdicionalesTab() {
                       disabled={saving}
                       className="px-3 py-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white text-sm rounded mr-2"
                     >
-                      ✅ Guardar
+                      ✅
                     </button>
                     <button
                       onClick={handleCancelar}
@@ -327,19 +310,28 @@ export default function ServiciosAdicionalesTab() {
                   <td className="px-6 py-3">{servicio.precioBase}€</td>
                   <td className="px-6 py-3">{servicio.porcentajeIVA}%</td>
                   <td className="px-6 py-3">{servicio.suplicosBase}€</td>
-                  <td className="px-6 py-3">{servicio.activo ? '✅' : '❌'}</td>
+                  <td className="px-6 py-3 font-semibold">{servicio.total}€</td>
+                  <td className="px-6 py-3">
+                    {servicio.tramiteConfig ? (
+                      <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm">
+                        {servicio.tramiteConfig.nombre}
+                      </span>
+                    ) : (
+                      <span className="text-gray-500 text-sm">Genérico</span>
+                    )}
+                  </td>
                   <td className="px-6 py-3 text-right">
                     <button
                       onClick={() => handleEditar(servicio)}
                       className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded mr-2"
                     >
-                      ✏️ Editar
+                      ✏️
                     </button>
                     <button
                       onClick={() => handleEliminar(servicio.id)}
                       className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm rounded"
                     >
-                      🗑️ Eliminar
+                      🗑️
                     </button>
                   </td>
                 </tr>
@@ -350,7 +342,7 @@ export default function ServiciosAdicionalesTab() {
 
         {servicios.length === 0 && editingId !== 'nuevo' && (
           <div className="p-8 text-center text-gray-500">
-            <p>No hay servicios configurados para este trámite</p>
+            <p>No hay servicios configurados</p>
           </div>
         )}
       </div>

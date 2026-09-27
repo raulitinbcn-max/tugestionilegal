@@ -10,7 +10,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    await db.servicioAnadido.delete({
+    await db.servicioAnadidoEnExpediente.delete({
       where: { id: params.id },
     })
 
@@ -33,29 +33,41 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
     const body = await req.json()
 
-    const servicio = await db.servicioAnadido.update({
-      where: { id: params.id },
-      data: {
-        precioBase: body.precioBase !== undefined ? parseFloat(body.precioBase) : undefined,
-        porcentajeIVA: body.porcentajeIVA !== undefined ? body.porcentajeIVA : undefined,
-        suplicosBase: body.suplicosBase !== undefined ? body.suplicosBase : undefined,
-      },
-    })
+    let updateData: any = {}
 
-    // Recalcular totales
-    const montoIVA = Math.round((servicio.precioBase * servicio.porcentajeIVA / 100) * 100) / 100
-    const total = servicio.precioBase + montoIVA + servicio.suplicosBase
+    // Si cambian precios, recalcular total
+    if (body.precioBase !== undefined || body.porcentajeIVA !== undefined || body.suplicosBase !== undefined) {
+      const servicioActual = await db.servicioAnadidoEnExpediente.findUnique({
+        where: { id: params.id },
+      })
 
-    const actualizado = await db.servicioAnadido.update({
-      where: { id: params.id },
-      data: {
+      if (!servicioActual) {
+        return NextResponse.json({ error: 'Servicio no encontrado' }, { status: 404 })
+      }
+
+      const precioBase = body.precioBase !== undefined ? body.precioBase : servicioActual.precioBase
+      const porcentajeIVA = body.porcentajeIVA !== undefined ? body.porcentajeIVA : servicioActual.porcentajeIVA
+      const suplicosBase = body.suplicosBase !== undefined ? body.suplicosBase : servicioActual.suplicosBase
+
+      const montoIVA = Math.round((precioBase * porcentajeIVA / 100) * 100) / 100
+      const total = precioBase + montoIVA + suplicosBase
+
+      updateData = {
+        precioBase,
+        porcentajeIVA,
+        suplicosBase,
         montoIVA,
-        suplicosTotales: servicio.suplicosBase,
+        suplicosTotales: suplicosBase,
         total,
-      },
+      }
+    }
+
+    const servicioAnadido = await db.servicioAnadidoEnExpediente.update({
+      where: { id: params.id },
+      data: updateData,
     })
 
-    return NextResponse.json(actualizado)
+    return NextResponse.json(servicioAnadido)
   } catch (error) {
     console.error('Error updating servicio anadido:', error)
     return NextResponse.json(

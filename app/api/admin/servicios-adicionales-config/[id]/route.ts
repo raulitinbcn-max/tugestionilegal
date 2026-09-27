@@ -12,7 +12,23 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
     const body = await req.json()
 
-    const servicio = await db.servicioAdicionalConfig.update({
+    // Recalcular total si cambian precios
+    let total = undefined
+    if (body.precioBase !== undefined || body.porcentajeIVA !== undefined || body.suplicosBase !== undefined) {
+      const servicio = await db.servicioAdicional.findUnique({ where: { id: params.id } })
+      if (!servicio) {
+        return NextResponse.json({ error: 'Servicio no encontrado' }, { status: 404 })
+      }
+
+      const precioBase = body.precioBase !== undefined ? body.precioBase : servicio.precioBase
+      const porcentajeIVA = body.porcentajeIVA !== undefined ? body.porcentajeIVA : servicio.porcentajeIVA
+      const suplicosBase = body.suplicosBase !== undefined ? body.suplicosBase : servicio.suplicosBase
+
+      const montoIVA = Math.round((precioBase * porcentajeIVA / 100) * 100) / 100
+      total = precioBase + montoIVA + suplicosBase
+    }
+
+    const servicio = await db.servicioAdicional.update({
       where: { id: params.id },
       data: {
         nombre: body.nombre,
@@ -20,9 +36,12 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         precioBase: body.precioBase !== undefined ? parseFloat(body.precioBase) : undefined,
         porcentajeIVA: body.porcentajeIVA !== undefined ? body.porcentajeIVA : undefined,
         suplicosBase: body.suplicosBase !== undefined ? body.suplicosBase : undefined,
+        total: total,
+        tramiteConfigId: body.tramiteConfigId === null ? null : (body.tramiteConfigId || undefined),
         documentosRequeridos: body.documentosRequeridos || null,
         activo: body.activo !== undefined ? body.activo : undefined,
       },
+      include: { tramiteConfig: true },
     })
 
     return NextResponse.json(servicio)
@@ -42,7 +61,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    await db.servicioAdicionalConfig.delete({
+    await db.servicioAdicional.delete({
       where: { id: params.id },
     })
 

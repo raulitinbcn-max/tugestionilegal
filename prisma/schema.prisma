@@ -72,7 +72,7 @@ model Tramite {
   facturasProforma  FacturaProforma[]
   vencimientos      Vencimiento[]
   tasas             Tasa[]
-  serviciosAnadidos ServicioAnadido[]
+  serviciosAnadidos ServicioAnadidoEnExpediente[]
   checklistItems    ChecklistItem[]
 
   @@index([clienteId])
@@ -94,7 +94,7 @@ model TramiteConfiguracion {
 
   checkDocumentos   CheckDocumento[]
   tasasConfiguracion TasaConfiguracion[]
-  serviciosAdicionales ServicioAdicionalConfig[]
+  serviciosAdicionales ServicioAdicional[]
   plantillas        Plantilla[]
   tramites          Tramite[]
 
@@ -126,47 +126,50 @@ model Tasa {
   @@map("tasas")
 }
 
-model ServicioAdicionalConfig {
+model ServicioAdicional {
   id                    String   @id @default(cuid())
-  tramiteConfigId       String
-  tramiteConfig         TramiteConfiguracion @relation(fields: [tramiteConfigId], references: [id], onDelete: Cascade)
-  nombre                String
+  nombre                String   @unique
   descripcion           String?
   precioBase            Float
   porcentajeIVA         Float   @default(21)
   suplicosBase          Float   @default(0)
-  documentosRequeridos  String?
-  activo                Boolean @default(true)
+  total                 Float    // Calculado: precioBase + (precioBase * porcentajeIVA / 100) + suplicosBase
+  documentosRequeridos  String?  // JSON: array de documentos requeridos
+  // Asociación opcional a trámites específicos (si null, es genérico para todos)
+  tramiteConfigId       String?
+  tramiteConfig         TramiteConfiguracion? @relation(fields: [tramiteConfigId], references: [id], onDelete: SetNull)
+  activo                Boolean  @default(true)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
-  serviciosAnadidos     ServicioAnadido[]
+  serviciosAnadidos     ServicioAnadidoEnExpediente[]
 
-  @@unique([tramiteConfigId, nombre])
   @@index([tramiteConfigId])
-  @@map("servicios_adicionales_config")
+  @@map("servicios_adicionales")
 }
 
-model ServicioAnadido {
+
+model ServicioAnadidoEnExpediente {
   id                    String   @id @default(cuid())
   tramiteId             String
   tramite               Tramite  @relation(fields: [tramiteId], references: [id], onDelete: Cascade)
-  servicioConfigId      String
-  servicioConfig        ServicioAdicionalConfig @relation(fields: [servicioConfigId], references: [id], onDelete: Cascade)
+  servicioId            String
+  servicio              ServicioAdicional @relation(fields: [servicioId], references: [id], onDelete: Cascade)
+  // Copia de valores en el momento de la adición (puede cambiar desde config)
   nombre                String
   precioBase            Float
   porcentajeIVA         Float   @default(21)
   suplicosBase          Float   @default(0)
-  montoIVA              Float   @default(0)
-  suplicosTotales       Float   @default(0)
-  total                 Float
-  documentosRequeridos  String?
+  montoIVA              Float   @default(0)     // Calculado al añadir
+  suplicosTotales       Float   @default(0)     // Suplidos base + suplidos del trámite
+  total                 Float                   // Calculado: precioBase + montoIVA + suplicosTotales
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
+  @@unique([tramiteId, servicioId])
   @@index([tramiteId])
-  @@index([servicioConfigId])
-  @@map("servicios_anadidos")
+  @@index([servicioId])
+  @@map("servicios_anadidos_expediente")
 }
 
 model HistorialEstado {

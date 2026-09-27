@@ -21,9 +21,9 @@ export async function GET(req: NextRequest) {
       )
     }
 
-    const servicios = await db.servicioAnadido.findMany({
+    const servicios = await db.servicioAnadidoEnExpediente.findMany({
       where: { tramiteId },
-      include: { servicioConfig: true },
+      include: { servicio: true },
       orderBy: { createdAt: 'desc' },
     })
 
@@ -46,50 +46,49 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json()
 
-    if (!body.tramiteId || !body.servicioConfigId) {
+    if (!body.tramiteId || !body.servicioId) {
       return NextResponse.json(
-        { error: 'tramiteId y servicioConfigId requeridos' },
+        { error: 'tramiteId y servicioId requeridos' },
         { status: 400 }
       )
     }
 
-    // Obtener config del servicio
-    const servicioConfig = await db.servicioAdicionalConfig.findUnique({
-      where: { id: body.servicioConfigId },
+    // Obtener servicio
+    const servicio = await db.servicioAdicional.findUnique({
+      where: { id: body.servicioId },
     })
 
-    if (!servicioConfig) {
+    if (!servicio) {
       return NextResponse.json(
         { error: 'Servicio no encontrado' },
         { status: 404 }
       )
     }
 
-    // Calcular montos
-    const precioBase = body.precioBase || servicioConfig.precioBase
-    const porcentajeIVA = body.porcentajeIVA || servicioConfig.porcentajeIVA
-    const suplicosBase = body.suplicosBase !== undefined ? body.suplicosBase : servicioConfig.suplicosBase
+    // Calcular montos (copiar valores del servicio)
+    const precioBase = body.precioBase || servicio.precioBase
+    const porcentajeIVA = body.porcentajeIVA !== undefined ? body.porcentajeIVA : servicio.porcentajeIVA
+    const suplicosBase = body.suplicosBase !== undefined ? body.suplicosBase : servicio.suplicosBase
 
     const montoIVA = Math.round((precioBase * porcentajeIVA / 100) * 100) / 100
     const suplicosTotales = suplicosBase
     const total = precioBase + montoIVA + suplicosTotales
 
-    const servicio = await db.servicioAnadido.create({
+    const servicioAnadido = await db.servicioAnadidoEnExpediente.create({
       data: {
         tramiteId: body.tramiteId,
-        servicioConfigId: body.servicioConfigId,
-        nombre: servicioConfig.nombre,
+        servicioId: body.servicioId,
+        nombre: servicio.nombre,
         precioBase,
         porcentajeIVA,
         suplicosBase,
         montoIVA,
         suplicosTotales,
         total,
-        documentosRequeridos: servicioConfig.documentosRequeridos,
       },
     })
 
-    return NextResponse.json(servicio, { status: 201 })
+    return NextResponse.json(servicioAnadido, { status: 201 })
   } catch (error) {
     console.error('Error creating servicio anadido:', error)
     return NextResponse.json(

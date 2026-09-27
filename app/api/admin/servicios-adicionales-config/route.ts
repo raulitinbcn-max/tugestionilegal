@@ -12,17 +12,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    const tramiteConfigId = req.nextUrl.searchParams.get('tramiteConfigId')
-
-    if (!tramiteConfigId) {
-      return NextResponse.json(
-        { error: 'tramiteConfigId requerido' },
-        { status: 400 }
-      )
-    }
-
-    const servicios = await db.servicioAdicionalConfig.findMany({
-      where: { tramiteConfigId },
+    const servicios = await db.servicioAdicional.findMany({
+      include: {
+        tramiteConfig: true,
+      },
       orderBy: { nombre: 'asc' },
     })
 
@@ -45,21 +38,28 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json()
 
-    if (!body.tramiteConfigId || !body.nombre || body.precioBase === undefined) {
+    if (!body.nombre || body.precioBase === undefined) {
       return NextResponse.json(
-        { error: 'tramiteConfigId, nombre y precioBase requeridos' },
+        { error: 'nombre y precioBase requeridos' },
         { status: 400 }
       )
     }
 
-    const servicio = await db.servicioAdicionalConfig.create({
+    // Calcular total
+    const porcentajeIVA = body.porcentajeIVA || 21
+    const suplicosBase = body.suplicosBase || 0
+    const montoIVA = Math.round((body.precioBase * porcentajeIVA / 100) * 100) / 100
+    const total = body.precioBase + montoIVA + suplicosBase
+
+    const servicio = await db.servicioAdicional.create({
       data: {
-        tramiteConfigId: body.tramiteConfigId,
         nombre: body.nombre,
         descripcion: body.descripcion || null,
         precioBase: parseFloat(body.precioBase),
-        porcentajeIVA: body.porcentajeIVA || 21,
-        suplicosBase: body.suplicosBase || 0,
+        porcentajeIVA,
+        suplicosBase,
+        total,
+        tramiteConfigId: body.tramiteConfigId || null,
         documentosRequeridos: body.documentosRequeridos || null,
         activo: body.activo !== false,
       },
