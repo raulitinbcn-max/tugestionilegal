@@ -23,6 +23,7 @@ interface Cliente {
   tipoOtroDocumento?: string
   numeroDocumento?: string
   numeroPasaporte?: string
+  direccionEnEspana?: boolean
   direccion?: string
   codigoPostal?: string
   poblacion?: string
@@ -77,7 +78,10 @@ export default function EditarClientePage() {
       if (!response.ok) throw new Error('Error cargando cliente')
       const data = await response.json()
       setCliente(data)
-      setFormData(data)
+      setFormData({
+        ...data,
+        direccionEnEspana: data.direccionEnEspana !== false ? true : false,
+      })
 
       // Validar documento al cargar
       if (data.tipoDocumento && data.numeroDocumento) {
@@ -123,8 +127,8 @@ export default function EditarClientePage() {
       }
     }
 
-    // Autocompletar población y provincia según código postal
-    if (name === 'codigoPostal' && processedValue.length === 5) {
+    // Autocompletar población y provincia según código postal (solo si "Dirección en España" está marcado)
+    if (name === 'codigoPostal' && processedValue.length === 5 && formData.direccionEnEspana !== false) {
       const location = getLocationFromPostalCode(processedValue)
       if (location) {
         setFormData((prev) => ({
@@ -522,10 +526,35 @@ export default function EditarClientePage() {
         {/* Dirección */}
         <div>
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Dirección</h2>
+          <div className="mb-4">
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="direccionEnEspana"
+                checked={formData.direccionEnEspana !== false}
+                onChange={(e) => {
+                  setFormData((prev) => ({
+                    ...prev,
+                    direccionEnEspana: e.target.checked,
+                    ...(e.target.checked === false && {
+                      codigoPostal: '',
+                      poblacion: '',
+                      provincia: '',
+                    }),
+                  }))
+                }}
+                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+              />
+              <label htmlFor="direccionEnEspana" className="ml-2 block text-sm font-medium text-gray-700">
+                Dirección en España
+              </label>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
               <label htmlFor="direccion" className="block text-sm font-medium text-gray-700 mb-1">
-                Dirección
+                Calle, Número, Piso y Portal
               </label>
               <input
                 type="text"
