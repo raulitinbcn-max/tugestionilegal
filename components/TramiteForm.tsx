@@ -215,10 +215,11 @@ export default function TramiteForm() {
     }
   }
 
-  const totalTasas = tasas.reduce((sum, t) => sum + t.importe, 0)
   const honorarios = parseFloat(formData.honorarios) || 0
-  const iva = honorarios * 0.21
-  const total = honorarios + iva + totalTasas
+  const totalSuplidos = tasas.reduce((sum, t) => sum + t.importe, 0)
+  const subtotal = honorarios
+  const iva = subtotal * 0.21
+  const total = subtotal + iva + totalSuplidos
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
@@ -553,16 +554,16 @@ export default function TramiteForm() {
             <p className="text-lg font-bold text-gray-900">{formatEuro(honorarios)}</p>
           </div>
           <div className="bg-white rounded p-3">
-            <p className="text-xs text-gray-600">IVA (21%)</p>
-            <p className="text-lg font-bold text-gray-900">{formatEuro(iva)}</p>
-          </div>
-          <div className="bg-white rounded p-3">
             <p className="text-xs text-gray-600">Servicios</p>
             <p className="text-lg font-bold text-gray-900">{formatEuro(0)}</p>
           </div>
           <div className="bg-white rounded p-3">
+            <p className="text-xs text-gray-600">IVA (21%)</p>
+            <p className="text-lg font-bold text-gray-900">{formatEuro(iva)}</p>
+          </div>
+          <div className="bg-white rounded p-3">
             <p className="text-xs text-gray-600">Suplidos</p>
-            <p className="text-lg font-bold text-gray-900">{formatEuro(totalTasas)}</p>
+            <p className="text-lg font-bold text-gray-900">{formatEuro(totalSuplidos)}</p>
           </div>
           <div className="bg-blue-600 rounded p-3">
             <p className="text-xs text-blue-100">TOTAL</p>
