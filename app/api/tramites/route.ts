@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
       paisDocumento,
       tipoOtroDocumento,
       numeroPasaporte,
+      direccionEnEspana,
       direccion,
       codigoPostal,
       poblacion,

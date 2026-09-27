@@ -45,6 +45,7 @@ interface FormData {
   paisDocumento?: string
   tipoOtroDocumento?: string
   numeroPasaporte: string
+  direccionEnEspana: boolean
   direccion: string
   codigoPostal: string
   poblacion: string
@@ -96,6 +97,7 @@ export default function TramiteForm() {
     tipoDocumento: '',
     numeroDocumento: '',
     numeroPasaporte: '',
+    direccionEnEspana: true,
     direccion: '',
     codigoPostal: '',
     poblacion: '',
@@ -274,8 +276,8 @@ export default function TramiteForm() {
       }
     }
 
-    // Autocompletar población y provincia según código postal
-    if (name === 'codigoPostal' && value.length === 5) {
+    // Autocompletar población y provincia según código postal (solo si "Dirección en España" está marcado)
+    if (name === 'codigoPostal' && value.length === 5 && formData.direccionEnEspana) {
       const location = getLocationFromPostalCode(value)
       if (location) {
         setFormData((prev) => ({
@@ -296,6 +298,19 @@ export default function TramiteForm() {
 
   const validateEmail = (email: string): boolean => {
     return email.includes('@') && email.includes('.')
+  }
+
+  const handleCheckboxChange = (name: string, checked: boolean) => {
+    setFormData((prev) => ({
+      ...prev,
+      [name]: checked,
+      // Si se desmarca, limpiar código postal, población y provincia
+      ...(name === 'direccionEnEspana' && !checked && {
+        codigoPostal: '',
+        poblacion: '',
+        provincia: '',
+      }),
+    }))
   }
 
   const handleNacionalidadChange = (value: string) => {
@@ -633,6 +648,22 @@ export default function TramiteForm() {
           </div>
 
           <div className="md:col-span-2">
+            <h3 className="text-base font-semibold text-gray-900 mb-3">Dirección</h3>
+            <div className="flex items-center mb-4">
+              <input
+                type="checkbox"
+                id="direccionEnEspana"
+                checked={formData.direccionEnEspana}
+                onChange={(e) => handleCheckboxChange('direccionEnEspana', e.target.checked)}
+                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+              />
+              <label htmlFor="direccionEnEspana" className="ml-2 block text-sm font-medium text-gray-700">
+                Dirección en España
+              </label>
+            </div>
+          </div>
+
+          <div className="md:col-span-2">
             <label htmlFor="direccion" className="block text-sm font-medium text-gray-700 mb-1">
               Calle, Número, Piso y Portal
             </label>
@@ -675,7 +706,7 @@ export default function TramiteForm() {
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Barcelona"
-              readOnly={formData.codigoPostal.length === 5}
+              readOnly={formData.direccionEnEspana && formData.codigoPostal.length === 5}
             />
           </div>
 
@@ -691,7 +722,7 @@ export default function TramiteForm() {
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Barcelona"
-              readOnly={formData.codigoPostal.length === 5}
+              readOnly={formData.direccionEnEspana && formData.codigoPostal.length === 5}
             />
           </div>
 
