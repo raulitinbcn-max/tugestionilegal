@@ -56,6 +56,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user && token) {
         session.user.id = token.sub
         session.accessToken = token.accessToken
+        console.log('[AUTH] Session callback - accessToken present:', !!token.accessToken)
       }
       return session
     },
@@ -63,9 +64,12 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id
       }
+      // Store access token when account is provided (initial login)
       if (account) {
         token.accessToken = account.access_token
       }
+      // If we already have an accessToken, keep it (for subsequent requests)
+      // This ensures the token persists across session refreshes
       return token
     },
     async redirect({ url, baseUrl }) {

@@ -8,8 +8,27 @@ export const dynamic = 'force-dynamic'
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
+    const sessionAny = session as any
+
+    console.log('[PLANTILLAS] Session check:', {
+      hasSession: !!session,
+      user: sessionAny?.user?.email,
+      hasAccessToken: !!sessionAny?.accessToken,
+      accessTokenLength: sessionAny?.accessToken?.length || 0
+    })
+
     if (!session) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
+
+    if (!sessionAny.accessToken) {
+      return NextResponse.json({
+        error: 'No hay accessToken en sesión',
+        debug: {
+          user: sessionAny?.user?.email,
+          sessionKeys: Object.keys(sessionAny || {})
+        }
+      }, { status: 401 })
     }
 
     const plantillasFolderId = process.env.DRIVE_FOLDER_PLANTILLAS_ID
