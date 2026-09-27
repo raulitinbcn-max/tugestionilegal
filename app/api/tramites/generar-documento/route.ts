@@ -19,7 +19,10 @@ export async function POST(req: NextRequest) {
 
     const tramite = await db.tramite.findUnique({
       where: { id: tramiteId },
-      include: { cliente: true, tramiteConfig: true },
+      include: {
+        cliente: true,
+        tramiteConfig: true,
+      },
     })
 
     if (!tramite) {
@@ -74,9 +77,19 @@ export async function POST(req: NextRequest) {
 
     const importe = tramite.honorarios || 0
     const suplidos = tramite.suplidos || 0
-    const porcentajeIVA = 21
-    const montoIVA = importe * (porcentajeIVA / 100)
-    const total = importe + montoIVA + suplidos
+
+    // Get servicios adicionales if they exist
+    const servicios = await db.servicioAnadidoEnExpediente.findMany({
+      where: { tramiteId },
+      include: { servicio: true },
+    })
+    const totalServicios = servicios.reduce((sum, s) => sum + (s.precioBase || 0), 0)
+
+    // Use variable IVA from tramite (stored when form was submitted)
+    const porcentajeIVA = tramite.porcentajeIVA || 21
+    const subtotal = importe + totalServicios
+    const montoIVA = Math.round(subtotal * (porcentajeIVA / 100) * 100) / 100
+    const total = subtotal + montoIVA + suplidos
 
     const hoy = new Date()
     const fechaFormato = hoy.toLocaleDateString('es-ES', {
@@ -101,6 +114,13 @@ export async function POST(req: NextRequest) {
     const detalleSuplidos = tasas
       .map((t) => `${t.nombre}: ${t.importe.toFixed(2).replace('.', ',')} €`)
       .join('\n') || 'Sin suplidos'
+
+    // Construir descripción de servicios adicionales
+    const detalleServicios = servicios.length > 0
+      ? servicios
+        .map((s) => `${s.servicio?.nombre || s.nombre}: ${(s.precioBase || 0).toFixed(2).replace('.', ',')} €`)
+        .join('\n')
+      : 'Sin servicios adicionales'
 
     const formatearImporte = (valor: number) => `${valor.toFixed(2).replace('.', ',')} €`
     const formatearImporteLetras = (valor: number) => `${numeroALetras(valor)} €`
@@ -155,6 +175,11 @@ export async function POST(req: NextRequest) {
       '{{FECHA}}': fechaFormato,
       '{{IMPORTE SIN IMPUESTO}}': formatearImporte(importe),
       '{{IMPORTE SIN IMPUESTO EN LETRAS}}': formatearImporteLetras(importe),
+      '{{SERVICIOS ADICIONALES}}': formatearImporte(totalServicios),
+      '{{SERVICIOS ADICIONALES EN LETRAS}}': formatearImporteLetras(totalServicios),
+      '{{DETALLE SERVICIOS ADICIONALES}}': detalleServicios,
+      '{{SUBTOTAL}}': formatearImporte(subtotal),
+      '{{SUBTOTAL EN LETRAS}}': formatearImporteLetras(subtotal),
       '{{PORCENTAJE IVA}}': porcentajeIVA.toString(),
       '{{IMPORTE IVA}}': formatearImporte(montoIVA),
       '{{IMPORTE IVA EN LETRAS}}': formatearImporteLetras(montoIVA),

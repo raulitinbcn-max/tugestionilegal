@@ -33,6 +33,7 @@ export async function POST(req: NextRequest) {
       situacionActual,
       tipoTramite,
       honorarios,
+      porcentajeIVA,
       formaPago,
       tasas,
     } = body
@@ -146,6 +147,7 @@ export async function POST(req: NextRequest) {
         tramiteConfigId: tramiteConfig.id,
         categoriaId,
         honorarios: honorarios ? parseFloat(honorarios) : null,
+        porcentajeIVA: porcentajeIVA ? parseFloat(porcentajeIVA) : 21,
         formaPago: formaPago || null,
         suplidos,
         driveFolderId,

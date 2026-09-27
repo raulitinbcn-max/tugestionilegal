@@ -57,6 +57,7 @@ model Tramite {
   categoria         CategoriasTramite? @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
   estado            String   @default("pendiente")
   honorarios        Float?
+  porcentajeIVA     Float    @default(21)
   formaPago         String?
   suplidos          Float?   @default(0)
   driveFolderId     String?
