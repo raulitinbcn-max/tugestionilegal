@@ -36,7 +36,7 @@ interface FormData {
   formaPago: string
 }
 
-export default function TramiteForm2() {
+export default function TramiteForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const clienteId = searchParams.get('clienteId')
@@ -90,7 +90,6 @@ export default function TramiteForm2() {
       if (response.ok) {
         const data = await response.json()
         const tramites = data.tramites || []
-        console.log('[TramiteForm2] Loaded tramites:', tramites)
         setTramitesOptions(tramites)
 
         // Set first tramite as default
@@ -101,11 +100,11 @@ export default function TramiteForm2() {
           }))
         }
       } else {
-        console.error('[TramiteForm2] Failed to load tramites:', response.status)
+        console.error('Failed to load tramites:', response.status)
         toast.error('Error cargando trámites')
       }
     } catch (error) {
-      console.error('[TramiteForm2] Error loading tramites:', error)
+      console.error('Error loading tramites:', error)
       toast.error('Error cargando trámites')
     } finally {
       setTramitesLoading(false)
@@ -133,7 +132,7 @@ export default function TramiteForm2() {
         }))
       }
     } catch (error) {
-      console.error('[TramiteForm2] Error loading cliente:', error)
+      console.error('Error loading cliente:', error)
     }
   }
 
@@ -152,7 +151,7 @@ export default function TramiteForm2() {
         )
       }
     } catch (error) {
-      console.error('[TramiteForm2] Error loading tasas:', error)
+      console.error('Error loading tasas:', error)
     }
   }
 
