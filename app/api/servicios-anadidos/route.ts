@@ -15,10 +15,7 @@ export async function GET(req: NextRequest) {
     const tramiteId = req.nextUrl.searchParams.get('tramiteId')
 
     if (!tramiteId) {
-      return NextResponse.json(
-        { error: 'tramiteId requerido' },
-        { status: 400 }
-      )
+      return NextResponse.json([], { status: 200 })
     }
 
     const servicios = await db.servicioAnadidoEnExpediente.findMany({
@@ -31,7 +28,7 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     console.error('Error fetching servicios anadidos:', error)
     return NextResponse.json(
-      { error: 'Error al obtener servicios' },
+      { error: error instanceof Error ? error.message : 'Error al obtener servicios' },
       { status: 500 }
     )
   }
