@@ -83,6 +83,7 @@ export default function TramiteForm() {
   }
 
   useEffect(() => {
+    console.log('[TramiteForm] useEffect fired')
     const loadData = async () => {
       try {
         console.log('[TramiteForm] Starting load')
@@ -144,6 +145,7 @@ export default function TramiteForm() {
       }
     }
 
+    console.log('[TramiteForm] calling loadData()')
     loadData()
   }, [clienteId])
 
