@@ -85,13 +85,15 @@ export default function TramiteForm() {
   useEffect(() => {
     const loadData = async () => {
       try {
+        console.log('[TramiteForm] Starting load')
         // Cargar configuración de trámites desde el nuevo endpoint unificado
         const configResponse = await fetch('/api/admin/tramites-list')
-        console.log('TramiteForm configResponse status:', configResponse.status)
+        console.log('[TramiteForm] configResponse status:', configResponse.status)
         if (configResponse.ok) {
           const configData = await configResponse.json()
+          console.log('[TramiteForm] received data:', configData)
           const tramitesArray = configData.tramites || []
-          console.log('TramiteForm loaded tramites:', tramitesArray)
+          console.log('[TramiteForm] tramitesArray length:', tramitesArray.length)
 
           // Convert to map format for compatibility
           const tramitesMap: Record<string, TramiteConfig> = {}
@@ -101,7 +103,7 @@ export default function TramiteForm() {
               descripcion: t.descripcion,
             }
           })
-          console.log('TramiteForm tramitesMap:', tramitesMap)
+          console.log('[TramiteForm] tramitesMap keys:', Object.keys(tramitesMap))
           setTramitesConfig(tramitesMap)
 
           // Cargar tasas del primer tipo de trámite por defecto
@@ -113,7 +115,7 @@ export default function TramiteForm() {
             }))
           }
         } else {
-          console.error('TramiteForm error loading tramites:', configResponse.status)
+          console.error('[TramiteForm] error loading tramites:', configResponse.status)
         }
 
         // Cargar datos del cliente si viene clienteId
