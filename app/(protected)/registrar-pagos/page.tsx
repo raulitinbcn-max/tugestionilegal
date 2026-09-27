@@ -68,10 +68,14 @@ export default function RegistrarPagosPage() {
     }
   }
 
-  // Recargar cuando cambian los filtros
+  // Debounce para búsqueda de texto (300ms)
   useEffect(() => {
-    setLoading(true)
-    loadData()
+    const timer = setTimeout(() => {
+      setLoading(true)
+      loadData()
+    }, 300)
+
+    return () => clearTimeout(timer)
   }, [searchTerm, estadoFiltro, formaPagoFiltro, fechaDesdeFiltro, fechaHastaFiltro, categoriaFiltro])
 
   const iniciarRegistroPago = (vencimiento: Vencimiento) => {
