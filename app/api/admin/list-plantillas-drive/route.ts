@@ -43,15 +43,8 @@ export async function GET(req: NextRequest) {
     console.log('[PLANTILLAS] Buscando en carpeta:', plantillasFolderId)
     console.log('[PLANTILLAS] Sesión:', { user: (session as any).user?.email, hasAccessToken: !!(session as any).accessToken })
 
-    // Listar archivos: Google Docs, PDFs, Word, etc.
-    // Accept Google Docs, PDFs, Word documents, and Google Sheets
-    const mimeTypes = [
-      "'application/vnd.google-apps.document'",
-      "'application/pdf'",
-      "'application/vnd.openxmlformats-officedocument.wordprocessingml.document'",
-      "'application/vnd.google-apps.spreadsheet'"
-    ]
-    const mimeTypeQuery = mimeTypes.map(m => `mimeType = ${m}`).join(' or ')
+    // Listar archivos: SOLO Google Docs
+    const mimeTypeQuery = "mimeType = 'application/vnd.google-apps.document'"
     const files = await listFiles(plantillasFolderId, mimeTypeQuery)
 
     console.log('[PLANTILLAS] Encontradas:', files.length, 'documentos')
