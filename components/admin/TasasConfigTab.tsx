@@ -110,17 +110,38 @@ export default function TasasConfigTab() {
   const handleSave = async () => {
     setSaving(true)
     try {
-      const response = await fetch('/api/admin/tasas-config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tasasConfig }),
+      // Find tramiteConfigId for each tipoTramite
+      const promises: Promise<Response>[] = []
+
+      Object.entries(tasasConfig).forEach(([tipoTramite, tasas]) => {
+        const tramite = tramitesConfig.find(t => t.tipoTramite === tipoTramite)
+        if (!tramite) return
+
+        // Create a POST for each tasa
+        tasas.forEach((tasa) => {
+          promises.push(
+            fetch('/api/admin/tasas-config', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                tramiteConfigId: tramite.id,
+                nombre: tasa.nombre,
+                importe: parseFloat(tasa.importe.toString()),
+              }),
+            })
+          )
+        })
       })
 
-      if (!response.ok) throw new Error('Error al guardar')
+      const results = await Promise.all(promises)
+      if (!results.every(r => r.ok)) throw new Error('Error al guardar algunas tasas')
 
       toast.success('✅ Configuración de tasas guardada')
-    } catch (error) {
-      toast.error('Error al guardar configuración')
+      await new Promise(r => setTimeout(r, 500)) // Wait before reload
+      window.location.reload()
+    } catch (error: any) {
+      console.error('Error:', error?.message || error)
+      toast.error(error?.message || 'Error al guardar configuración')
     } finally {
       setSaving(false)
     }
