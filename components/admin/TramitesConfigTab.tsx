@@ -45,33 +45,25 @@ export default function TramitesConfigTab() {
 
   const loadConfigs = async () => {
     try {
-      const response = await fetch('/api/admin/tramites-config')
+      const response = await fetch('/api/admin/tramites-list')
       if (response.ok) {
         const data = await response.json()
+        const tramitesArray = data.tramites || []
 
-        // Handle both array and object formats
-        let configsMap: TramitesConfigMap = {}
+        // Convert array to object map using tipoTramite as key
+        const configsMap: TramitesConfigMap = {}
 
-        if (Array.isArray(data)) {
-          // Convert array to object map using tipoTramite or nombre as key
-          data.forEach((config: any) => {
-            const key = config.tipoTramite || config.nombre
-            configsMap[key] = {
-              nombre: config.nombre,
-              descripcion: config.descripcion || '',
-              categoria: config.categoria || '',
-              plantillasDisponibles: config.plantillasDisponibles
-                ? JSON.parse(config.plantillasDisponibles)
-                : [],
-              camposRequeridos: config.camposRequeridos
-                ? JSON.parse(config.camposRequeridos)
-                : [],
-              activo: config.activo,
-            }
-          })
-        } else if (data.configs) {
-          configsMap = data.configs
-        }
+        tramitesArray.forEach((config: any) => {
+          const key = config.tipoTramite
+          configsMap[key] = {
+            nombre: config.nombre,
+            descripcion: config.descripcion || '',
+            categoria: config.categoria || '',
+            plantillasDisponibles: [],
+            camposRequeridos: [],
+            activo: config.activo !== false,
+          }
+        })
 
         if (Object.keys(configsMap).length > 0) {
           setConfigs(configsMap)
