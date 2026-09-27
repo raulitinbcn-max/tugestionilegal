@@ -17,24 +17,25 @@ interface PlantillaRegistrada {
   driveFileId: string
 }
 
-interface Tramite {
-  tipoTramite: string
-  nombre: string
-  descripcion?: string
-  categoria?: string
-}
-
 export default function Plantillas2AdminPage() {
   const [plantillasDisponibles, setPlantillasDisponibles] = useState<PlantillaDisponible[]>([])
   const [plantillasRegistradas, setPlantillasRegistradas] = useState<PlantillaRegistrada[]>([])
-  const [tramites, setTramites] = useState<Tramite[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedPlantilla, setSelectedPlantilla] = useState<string>('')
   const [selectedTipo, setSelectedTipo] = useState<string>('contrato')
-  const [selectedTramite, setSelectedTramite] = useState<string>('')
+  const [selectedTramite, setSelectedTramite] = useState<string>('Residencia')
   const [saving, setSaving] = useState(false)
 
   const TIPOS = ['contrato', 'mandato', 'factura', 'otro']
+  const TRAMITES = [
+    'Residencia',
+    'Trabajo',
+    'Reagrupación Familiar',
+    'Nacionalidad',
+    'Visado',
+    'Autorización de Estancia',
+    'Otro',
+  ]
 
   useEffect(() => {
     loadData()
@@ -43,7 +44,6 @@ export default function Plantillas2AdminPage() {
   const loadData = async () => {
     setLoading(true)
     try {
-      // Load plantillas from Drive
       const plantillasResponse = await fetch('/api/admin/list-plantillas-drive')
       if (plantillasResponse.ok) {
         const plantillasData = await plantillasResponse.json()
@@ -53,23 +53,11 @@ export default function Plantillas2AdminPage() {
         setPlantillasDisponibles(plantillas)
       }
 
-      // Load registered plantillas
       const registradasResponse = await fetch('/api/admin/plantillas-registradas')
       if (registradasResponse.ok) {
         const registradasData = await registradasResponse.json()
         const registradas = Array.isArray(registradasData) ? registradasData : []
         setPlantillasRegistradas(registradas)
-      }
-
-      // Load tramites
-      const tramitesResponse = await fetch('/api/admin/tramites-list')
-      if (tramitesResponse.ok) {
-        const tramitesData = await tramitesResponse.json()
-        const tramitesList = tramitesData.tramites || []
-        setTramites(tramitesList)
-        if (tramitesList.length > 0 && !selectedTramite) {
-          setSelectedTramite(tramitesList[0].tipoTramite)
-        }
       }
     } catch (error) {
       console.error('[Plantillas2] Error loading data:', error)
@@ -193,10 +181,9 @@ export default function Plantillas2AdminPage() {
                   onChange={(e) => setSelectedTramite(e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="">Selecciona un trámite...</option>
-                  {tramites.map((tramite) => (
-                    <option key={tramite.tipoTramite} value={tramite.tipoTramite}>
-                      {tramite.nombre}
+                  {TRAMITES.map((tramite) => (
+                    <option key={tramite} value={tramite}>
+                      {tramite}
                     </option>
                   ))}
                 </select>
