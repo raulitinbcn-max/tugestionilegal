@@ -12,8 +12,20 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    const plantillas = await db.plantilla.findMany()
-    return NextResponse.json(plantillas)
+    const plantillas = await db.plantilla.findMany({
+      include: { tramiteConfig: true },
+    })
+
+    // Map to return tipoTramite instead of tramiteConfigId for frontend
+    const plantillasResponse = plantillas.map((p) => ({
+      id: p.id,
+      nombre: p.nombre,
+      tipo: p.tipo,
+      tipoTramite: p.tramiteConfig?.tipoTramite || '',
+      driveFileId: p.driveFileId,
+    }))
+
+    return NextResponse.json(plantillasResponse)
   } catch (error) {
     console.error('Error fetching plantillas:', error)
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })
@@ -39,11 +51,23 @@ export async function POST(req: NextRequest) {
 
     console.log('[plantillas-registradas POST] Creating plantilla with data:', { nombre: body.nombre, tipo: body.tipo, tipoTramite: body.tipoTramite })
 
+    // Find tramiteConfig by tipoTramite
+    const tramiteConfig = await db.tramiteConfiguracion.findUnique({
+      where: { tipoTramite: body.tipoTramite },
+    })
+
+    if (!tramiteConfig) {
+      return NextResponse.json(
+        { error: `TramiteConfiguracion not found for tipoTramite: ${body.tipoTramite}` },
+        { status: 404 }
+      )
+    }
+
     const plantilla = await db.plantilla.create({
       data: {
         nombre: body.nombre,
         tipo: body.tipo,
-        tipoTramite: body.tipoTramite,
+        tramiteConfigId: tramiteConfig.id,
         driveFileId: body.driveFileId,
       },
     })
