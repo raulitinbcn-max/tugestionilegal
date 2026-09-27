@@ -6,6 +6,12 @@ import Link from 'next/link'
 import toast from 'react-hot-toast'
 import { validarDocumento, PAISES } from '@/lib/documento-validator'
 
+interface Pais {
+  id: string
+  nombre: string
+  codigo?: string
+}
+
 interface Cliente {
   id: string
   nombreCompleto: string
@@ -38,10 +44,28 @@ export default function EditarClientePage() {
   const [saving, setSaving] = useState(false)
   const [formData, setFormData] = useState<Partial<Cliente>>({})
   const [validacionDocumento, setValidacionDocumento] = useState<{ valido: boolean; error?: string } | null>(null)
+  const [paisesDisponibles, setPaisesDisponibles] = useState<Pais[]>([])
+  const [paisesFiltered, setPaisesFiltered] = useState<Pais[]>([])
+  const [showPaisesDropdown, setShowPaisesDropdown] = useState(false)
+  const [busquedaNacionalidad, setBusquedaNacionalidad] = useState('')
 
   useEffect(() => {
     loadCliente()
+    loadPaises()
   }, [clienteId])
+
+  const loadPaises = async () => {
+    try {
+      const response = await fetch('/api/paises')
+      if (response.ok) {
+        const data = await response.json()
+        setPaisesDisponibles(data)
+        setPaisesFiltered(data)
+      }
+    } catch (error) {
+      console.error('Error loading paises:', error)
+    }
+  }
 
   const loadCliente = async () => {
     try {
@@ -82,6 +106,30 @@ export default function EditarClientePage() {
         setValidacionDocumento(null)
       }
     }
+  }
+
+  const handleNacionalidadChange = (value: string) => {
+    setBusquedaNacionalidad(value)
+    setShowPaisesDropdown(true)
+
+    // Filtrar países según búsqueda
+    if (value.trim()) {
+      const filtered = paisesDisponibles.filter((p) =>
+        p.nombre.toLowerCase().includes(value.toLowerCase())
+      )
+      setPaisesFiltered(filtered)
+    } else {
+      setPaisesFiltered(paisesDisponibles)
+    }
+  }
+
+  const selectNacionalidad = (pais: Pais) => {
+    setFormData({
+      ...formData,
+      nacionalidad: pais.nombre,
+    })
+    setBusquedaNacionalidad(pais.nombre)
+    setShowPaisesDropdown(false)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -194,18 +242,42 @@ export default function EditarClientePage() {
               />
             </div>
 
-            <div>
+            <div className="relative">
               <label htmlFor="nacionalidad" className="block text-sm font-medium text-gray-700 mb-1">
                 Nacionalidad
               </label>
               <input
                 type="text"
                 id="nacionalidad"
-                name="nacionalidad"
-                value={formData.nacionalidad || ''}
-                onChange={handleChange}
+                value={busquedaNacionalidad}
+                onChange={(e) => handleNacionalidadChange(e.target.value)}
+                onFocus={() => setShowPaisesDropdown(true)}
+                onBlur={() => setTimeout(() => setShowPaisesDropdown(false), 200)}
+                placeholder="Escribe para buscar..."
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
+
+              {showPaisesDropdown && paisesFiltered.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                  {paisesFiltered.map((pais) => (
+                    <button
+                      key={pais.id}
+                      type="button"
+                      onClick={() => selectNacionalidad(pais)}
+                      className="w-full text-left px-4 py-2 hover:bg-blue-50 border-b border-gray-100 last:border-b-0"
+                    >
+                      {pais.nombre}
+                      {pais.codigo && <span className="text-gray-500 ml-2">({pais.codigo})</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {showPaisesDropdown && busquedaNacionalidad && paisesFiltered.length === 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-3 text-gray-500 text-sm">
+                  No se encontraron países
+                </div>
+              )}
             </div>
 
             <div>
@@ -252,7 +324,7 @@ export default function EditarClientePage() {
             {formData.tipoDocumento === 'Pasaporte' && (
               <div>
                 <label htmlFor="paisDocumento" className="block text-sm font-medium text-gray-700 mb-1">
-                  País
+                  País del Pasaporte
                 </label>
                 <select
                   id="paisDocumento"
@@ -262,9 +334,9 @@ export default function EditarClientePage() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="">Seleccionar país...</option>
-                  {PAISES.map((pais) => (
-                    <option key={pais} value={pais}>
-                      {pais}
+                  {paisesDisponibles.map((pais) => (
+                    <option key={pais.id} value={pais.nombre}>
+                      {pais.nombre}
                     </option>
                   ))}
                 </select>
