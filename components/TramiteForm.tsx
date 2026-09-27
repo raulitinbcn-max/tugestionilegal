@@ -481,6 +481,8 @@ export default function TramiteForm() {
               id="nacionalidad"
               value={busquedaNacionalidad}
               onChange={(e) => handleNacionalidadChange(e.target.value)}
+              onFocus={() => setShowPaisesDropdown(true)}
+              onBlur={() => setTimeout(() => setShowPaisesDropdown(false), 200)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Escribir para filtrar..."
             />
@@ -491,11 +493,17 @@ export default function TramiteForm() {
                     key={pais.id}
                     type="button"
                     onClick={() => selectNacionalidad(pais)}
-                    className="w-full text-left px-4 py-2 hover:bg-blue-50 text-sm"
+                    className="w-full text-left px-4 py-2 hover:bg-blue-50 border-b border-gray-100 last:border-b-0 text-sm"
                   >
                     {pais.nombre}
+                    {pais.codigo && <span className="text-gray-500 ml-2">({pais.codigo})</span>}
                   </button>
                 ))}
+              </div>
+            )}
+            {showPaisesDropdown && busquedaNacionalidad && paisesFiltered.length === 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-3 text-gray-500 text-sm z-10">
+                No se encontraron países
               </div>
             )}
           </div>
@@ -531,6 +539,8 @@ export default function TramiteForm() {
                   id="paisDocumento"
                   value={busquedaPaisDocumento}
                   onChange={(e) => handlePaisDocumentoChange(e.target.value)}
+                  onFocus={() => setShowPaisesDropdownDocumento(true)}
+                  onBlur={() => setTimeout(() => setShowPaisesDropdownDocumento(false), 200)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Escribir para filtrar..."
                 />
@@ -541,11 +551,17 @@ export default function TramiteForm() {
                         key={pais.id}
                         type="button"
                         onClick={() => selectPaisDocumento(pais)}
-                        className="w-full text-left px-4 py-2 hover:bg-blue-50 text-sm"
+                        className="w-full text-left px-4 py-2 hover:bg-blue-50 border-b border-gray-100 last:border-b-0 text-sm"
                       >
                         {pais.nombre}
+                        {pais.codigo && <span className="text-gray-500 ml-2">({pais.codigo})</span>}
                       </button>
                     ))}
+                  </div>
+                )}
+                {showPaisesDropdownDocumento && busquedaPaisDocumento && paisesDocumentoFiltered.length === 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-3 text-gray-500 text-sm z-10">
+                    No se encontraron países
                   </div>
                 )}
               </div>
