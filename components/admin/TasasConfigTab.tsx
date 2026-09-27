@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
 
 interface TasaConfig {
+  id?: string
   nombre: string
   importe: number
 }
@@ -122,9 +123,12 @@ export default function TasasConfigTab() {
           return
         }
 
-        // Create a POST for each tasa
+        // Create a POST for each NEW tasa (sin id)
         tasas.forEach((tasa) => {
-          console.log(`Guardando tasa ${tasa.nombre} para ${tipoTramite} con tramiteConfigId ${tramite.id}`)
+          // Skip existing tasas (they have an id)
+          if (tasa.id) return
+
+          console.log(`Guardando tasa nueva ${tasa.nombre} para ${tipoTramite} con tramiteConfigId ${tramite.id}`)
           promises.push(
             fetch('/api/admin/tasas-config', {
               method: 'POST',
@@ -148,8 +152,7 @@ export default function TasasConfigTab() {
       const results = await Promise.all(promises)
       const failures = results.filter(r => !r.ok)
       if (failures.length > 0) {
-        const errorTexts = await Promise.all(failures.map(r => r.text()))
-        throw new Error(`Error al guardar ${failures.length} tasa(s): ${errorTexts.join(', ')}`)
+        throw new Error(`Error al guardar ${failures.length} tasa(s)`)
       }
 
       toast.success('✅ Configuración de tasas guardada')
