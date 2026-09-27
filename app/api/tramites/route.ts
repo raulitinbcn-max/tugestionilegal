@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
       porcentajeIVA,
       formaPago,
       tasas,
+      servicios,
     } = body
 
     // Validar datos requeridos
@@ -165,6 +166,24 @@ export async function POST(req: NextRequest) {
               tramiteId: tramite.id,
               nombre: tasa.nombre,
               importe: parseFloat(tasa.importe),
+            },
+          })
+        )
+      )
+    }
+
+    // Crear servicios adicionales asociados
+    if (servicios && Array.isArray(servicios) && servicios.length > 0) {
+      await Promise.all(
+        servicios.map((servicio: any) =>
+          db.servicioAnadidoEnExpediente.create({
+            data: {
+              tramiteId: tramite.id,
+              servicioId: servicio.id,
+              nombre: servicio.nombre,
+              precioBase: parseFloat(servicio.precioBase),
+              porcentajeIVA: parseFloat(servicio.porcentajeIVA),
+              suplicosBase: parseFloat(servicio.suplicosBase),
             },
           })
         )

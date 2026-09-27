@@ -240,23 +240,27 @@ export default function TramiteForm() {
     if (!servicio) return
 
     const precioBase = precioServicio ? parseFloat(precioServicio) : servicio.precioBase
-    const montoIVA = Math.round((precioBase * servicio.porcentajeIVA / 100) * 100) / 100
-    const totalTasa = Math.round((precioBase + montoIVA + servicio.suplicosBase) * 100) / 100
 
-    // Agregar como tasa
-    setTasas([
-      ...tasas,
+    // Agregar como servicio adicional (no como tasa)
+    setServicios([
+      ...servicios,
       {
-        id: `tasa-${servicioSeleccionado}-${Date.now()}`,
+        id: servicioSeleccionado,
         nombre: servicio.nombre,
-        importe: totalTasa,
+        precioBase,
+        porcentajeIVA: servicio.porcentajeIVA,
+        suplicosBase: servicio.suplicosBase,
       },
     ])
 
     setMostrarFormServicio(false)
     setServicioSeleccionado('')
     setPrecioServicio('')
-    toast.success('✅ Servicio añadido como tasa')
+    toast.success('✅ Servicio adicional añadido')
+  }
+
+  const removeServicio = (servicioId: string) => {
+    setServicios(servicios.filter((s) => s.id !== servicioId))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -270,6 +274,7 @@ export default function TramiteForm() {
         body: JSON.stringify({
           ...formData,
           tasas,
+          servicios,
         }),
       })
 
@@ -291,9 +296,10 @@ export default function TramiteForm() {
 
   const honorarios = parseFloat(formData.honorarios) || 0
   const porcentajeIVA = parseFloat(formData.porcentajeIVA) || 21
+  const totalServicios = servicios.reduce((sum, s) => sum + s.precioBase, 0)
   const totalSuplidos = tasas.reduce((sum, t) => sum + t.importe, 0)
-  const subtotal = honorarios
-  const iva = subtotal * (porcentajeIVA / 100)
+  const subtotal = honorarios + totalServicios
+  const iva = Math.round(subtotal * (porcentajeIVA / 100) * 100) / 100
   const total = subtotal + iva + totalSuplidos
 
   return (
@@ -561,6 +567,29 @@ export default function TramiteForm() {
       <div>
         <h2 className="text-xl font-semibold text-gray-900 mb-4">💰 Suplidos</h2>
 
+        {servicios.length > 0 && (
+          <div className="bg-blue-50 rounded-lg p-4 mb-6">
+            <h3 className="font-semibold text-gray-900 mb-3">Servicios Adicionales:</h3>
+            <div className="space-y-2">
+              {servicios.map((servicio) => (
+                <div key={servicio.id} className="flex items-center justify-between bg-white p-3 rounded border border-blue-200">
+                  <div>
+                    <p className="font-medium text-gray-900">{servicio.nombre}</p>
+                    <p className="text-sm text-gray-600">€{servicio.precioBase.toFixed(2)} (IVA: {servicio.porcentajeIVA}%)</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeServicio(servicio.id)}
+                    className="text-red-600 hover:text-red-800 font-semibold"
+                  >
+                    🗑️
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {tasas.length > 0 && (
           <div className="bg-gray-50 rounded-lg p-4 mb-6">
             <h3 className="font-semibold text-gray-900 mb-3">Tasas añadidas:</h3>
@@ -710,7 +739,7 @@ export default function TramiteForm() {
           </div>
           <div className="bg-white rounded p-3">
             <p className="text-xs text-gray-600">Servicios</p>
-            <p className="text-lg font-bold text-gray-900">{formatEuro(0)}</p>
+            <p className="text-lg font-bold text-gray-900">{formatEuro(totalServicios)}</p>
           </div>
           <div className="bg-white rounded p-3">
             <p className="text-xs text-gray-600">IVA</p>
