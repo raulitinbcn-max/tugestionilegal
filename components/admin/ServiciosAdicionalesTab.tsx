@@ -36,7 +36,7 @@ export default function ServiciosAdicionalesTab() {
   const [servicios, setServicios] = useState<ServicioAdicional[]>([])
   const [loading, setLoading] = useState(true)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [formData, setFormData] = useState<Partial<ServicioAdicional>>({})
+  const [formData, setFormData] = useState<Partial<ServicioAdicional> & { tramiteConfigIds?: string[] }>({})
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -72,14 +72,18 @@ export default function ServiciosAdicionalesTab() {
       precioBase: 0,
       porcentajeIVA: 21,
       suplicosBase: 0,
-      tramiteConfigId: null,
+      tramiteConfigIds: [],
       activo: true,
-    } as any)
+    })
   }
 
   const handleEditar = (servicio: ServicioAdicional) => {
     setEditingId(servicio.id)
-    setFormData({ ...servicio })
+    const tramiteIds = servicio.asignacionesTramites?.map((a) => a.tramiteConfig.id) || []
+    setFormData({
+      ...servicio,
+      tramiteConfigIds: tramiteIds,
+    })
   }
 
   const handleCancelar = () => {
@@ -95,11 +99,14 @@ export default function ServiciosAdicionalesTab() {
 
     setSaving(true)
     try {
+      const { tramiteConfigIds, ...dataToSend } = formData
+      const tramiteConfigId = tramiteConfigIds && tramiteConfigIds.length > 0 ? tramiteConfigIds[0] : null
+
       if (editingId === 'nuevo') {
         const response = await fetch('/api/admin/servicios-adicionales-config', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData),
+          body: JSON.stringify({ ...dataToSend, tramiteConfigId }),
         })
 
         if (!response.ok) throw new Error('Error al crear')
@@ -108,7 +115,7 @@ export default function ServiciosAdicionalesTab() {
         const response = await fetch(`/api/admin/servicios-adicionales-config/${editingId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData),
+          body: JSON.stringify({ ...dataToSend, tramiteConfigId }),
         })
 
         if (!response.ok) throw new Error('Error al actualizar')
@@ -216,8 +223,8 @@ export default function ServiciosAdicionalesTab() {
                 </td>
                 <td className="px-6 py-3">
                   <select
-                    value={formData.tramiteConfigId || ''}
-                    onChange={(e) => setFormData({ ...formData, tramiteConfigId: e.target.value || null })}
+                    value={(formData.tramiteConfigIds && formData.tramiteConfigIds[0]) || ''}
+                    onChange={(e) => setFormData({ ...formData, tramiteConfigIds: e.target.value ? [e.target.value] : [] })}
                     className="px-2 py-1 border border-gray-300 rounded text-sm"
                   >
                     <option value="">Genérico (todos)</option>
@@ -290,8 +297,8 @@ export default function ServiciosAdicionalesTab() {
                   </td>
                   <td className="px-6 py-3">
                     <select
-                      value={formData.tramiteConfigId || ''}
-                      onChange={(e) => setFormData({ ...formData, tramiteConfigId: e.target.value || null })}
+                      value={(formData.tramiteConfigIds && formData.tramiteConfigIds[0]) || ''}
+                      onChange={(e) => setFormData({ ...formData, tramiteConfigIds: e.target.value ? [e.target.value] : [] })}
                       className="px-2 py-1 border border-gray-300 rounded text-sm"
                     >
                       <option value="">Genérico (todos)</option>
