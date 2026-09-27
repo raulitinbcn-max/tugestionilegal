@@ -12,7 +12,11 @@ model Cliente {
   nombreCompleto    String
   fechaNacimiento   DateTime?
   nacionalidad      String?
-  numeroPasaporte   String?
+  tipoDocumento     String?   // DNI, NIF/CIF, NIE, Pasaporte, Otro
+  paisDocumento     String?   // País (solo para Pasaporte)
+  tipoOtroDocumento String?   // Descripción (solo para Otro)
+  numeroDocumento   String?
+  numeroPasaporte   String?   // Deprecated - mantener para compatibilidad
   direccion         String?
   codigoPostal      String?
   poblacion         String?
@@ -355,5 +359,17 @@ model UsuarioAutorizado {
   updatedAt DateTime @updatedAt
 
   @@map("usuarios_autorizados")
+}
+
+model Pais {
+  id        String   @id @default(cuid())
+  nombre    String   @unique
+  codigo    String?  @unique  // ISO 3166-1 alpha-2 (ES, FR, etc)
+  orden     Int      @default(0)
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("paises")
 }
 

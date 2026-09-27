@@ -4,12 +4,17 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
+import { validarDocumento, PAISES } from '@/lib/documento-validator'
 
 interface Cliente {
   id: string
   nombreCompleto: string
   fechaNacimiento?: string
   nacionalidad?: string
+  tipoDocumento?: string
+  paisDocumento?: string
+  tipoOtroDocumento?: string
+  numeroDocumento?: string
   numeroPasaporte?: string
   direccion?: string
   codigoPostal?: string
@@ -21,6 +26,8 @@ interface Cliente {
   situacionActual?: string
 }
 
+const TIPOS_DOCUMENTO = ['DNI', 'NIF/CIF', 'NIE', 'Pasaporte', 'Otro']
+
 export default function EditarClientePage() {
   const params = useParams()
   const router = useRouter()
@@ -30,6 +37,7 @@ export default function EditarClientePage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [formData, setFormData] = useState<Partial<Cliente>>({})
+  const [validacionDocumento, setValidacionDocumento] = useState<{ valido: boolean; error?: string } | null>(null)
 
   useEffect(() => {
     loadCliente()
@@ -42,6 +50,12 @@ export default function EditarClientePage() {
       const data = await response.json()
       setCliente(data)
       setFormData(data)
+
+      // Validar documento al cargar
+      if (data.tipoDocumento && data.numeroDocumento) {
+        const resultado = validarDocumento(data.tipoDocumento, data.numeroDocumento)
+        setValidacionDocumento(resultado)
+      }
     } catch (error) {
       console.error('Error:', error)
       toast.error('Error cargando cliente')
@@ -50,16 +64,38 @@ export default function EditarClientePage() {
     }
   }
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
-    setFormData((prev) => ({
-      ...prev,
+    const newFormData = {
+      ...formData,
       [name]: value,
-    }))
+    }
+
+    setFormData(newFormData)
+
+    // Validar documento cuando cambiar tipo o número
+    if (name === 'tipoDocumento' || name === 'numeroDocumento') {
+      if (newFormData.tipoDocumento && newFormData.numeroDocumento) {
+        const resultado = validarDocumento(newFormData.tipoDocumento, newFormData.numeroDocumento)
+        setValidacionDocumento(resultado)
+      } else {
+        setValidacionDocumento(null)
+      }
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Validar documento antes de enviar
+    if (formData.tipoDocumento && formData.numeroDocumento) {
+      const resultado = validarDocumento(formData.tipoDocumento, formData.numeroDocumento)
+      if (!resultado.valido) {
+        toast.error(`Documento inválido: ${resultado.error}`)
+        return
+      }
+    }
+
     setSaving(true)
 
     try {
@@ -102,9 +138,12 @@ export default function EditarClientePage() {
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Datos Personales</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nombre Completo *</label>
+              <label htmlFor="nombreCompleto" className="block text-sm font-medium text-gray-700 mb-1">
+                Nombre Completo *
+              </label>
               <input
                 type="text"
+                id="nombreCompleto"
                 name="nombreCompleto"
                 value={formData.nombreCompleto || ''}
                 onChange={handleChange}
@@ -114,9 +153,12 @@ export default function EditarClientePage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                Email
+              </label>
               <input
                 type="email"
+                id="email"
                 name="email"
                 value={formData.email || ''}
                 onChange={handleChange}
@@ -125,9 +167,12 @@ export default function EditarClientePage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+              <label htmlFor="telefono" className="block text-sm font-medium text-gray-700 mb-1">
+                Teléfono
+              </label>
               <input
                 type="tel"
+                id="telefono"
                 name="telefono"
                 value={formData.telefono || ''}
                 onChange={handleChange}
@@ -136,9 +181,12 @@ export default function EditarClientePage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de Nacimiento</label>
+              <label htmlFor="fechaNacimiento" className="block text-sm font-medium text-gray-700 mb-1">
+                Fecha de Nacimiento
+              </label>
               <input
                 type="date"
+                id="fechaNacimiento"
                 name="fechaNacimiento"
                 value={formData.fechaNacimiento ? formData.fechaNacimiento.split('T')[0] : ''}
                 onChange={handleChange}
@@ -147,9 +195,12 @@ export default function EditarClientePage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nacionalidad</label>
+              <label htmlFor="nacionalidad" className="block text-sm font-medium text-gray-700 mb-1">
+                Nacionalidad
+              </label>
               <input
                 type="text"
+                id="nacionalidad"
                 name="nacionalidad"
                 value={formData.nacionalidad || ''}
                 onChange={handleChange}
@@ -158,20 +209,12 @@ export default function EditarClientePage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Número de Pasaporte</label>
+              <label htmlFor="profesion" className="block text-sm font-medium text-gray-700 mb-1">
+                Profesión
+              </label>
               <input
                 type="text"
-                name="numeroPasaporte"
-                value={formData.numeroPasaporte || ''}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Profesión</label>
-              <input
-                type="text"
+                id="profesion"
                 name="profesion"
                 value={formData.profesion || ''}
                 onChange={handleChange}
@@ -182,14 +225,130 @@ export default function EditarClientePage() {
           </div>
         </div>
 
+        {/* Documento */}
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">📄 Documento</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label htmlFor="tipoDocumento" className="block text-sm font-medium text-gray-700 mb-1">
+                Tipo de Documento
+              </label>
+              <select
+                id="tipoDocumento"
+                name="tipoDocumento"
+                value={formData.tipoDocumento || ''}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Seleccionar...</option>
+                {TIPOS_DOCUMENTO.map((tipo) => (
+                  <option key={tipo} value={tipo}>
+                    {tipo}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {formData.tipoDocumento === 'Pasaporte' && (
+              <div>
+                <label htmlFor="paisDocumento" className="block text-sm font-medium text-gray-700 mb-1">
+                  País
+                </label>
+                <select
+                  id="paisDocumento"
+                  name="paisDocumento"
+                  value={formData.paisDocumento || ''}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">Seleccionar país...</option>
+                  {PAISES.map((pais) => (
+                    <option key={pais} value={pais}>
+                      {pais}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {formData.tipoDocumento === 'Otro' && (
+              <div>
+                <label htmlFor="tipoOtroDocumento" className="block text-sm font-medium text-gray-700 mb-1">
+                  Descripción del Documento
+                </label>
+                <input
+                  type="text"
+                  id="tipoOtroDocumento"
+                  name="tipoOtroDocumento"
+                  value={formData.tipoOtroDocumento || ''}
+                  onChange={handleChange}
+                  placeholder="Ej: Licencia de conducir"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            )}
+
+            <div className={formData.tipoDocumento ? '' : 'md:col-span-2'}>
+              <label htmlFor="numeroDocumento" className="block text-sm font-medium text-gray-700 mb-1">
+                Número de Documento
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  id="numeroDocumento"
+                  name="numeroDocumento"
+                  value={formData.numeroDocumento || ''}
+                  onChange={handleChange}
+                  placeholder={
+                    formData.tipoDocumento === 'DNI'
+                      ? '12345678X'
+                      : formData.tipoDocumento === 'NIE'
+                      ? 'X1234567L'
+                      : formData.tipoDocumento === 'NIF/CIF'
+                      ? '12345678Z'
+                      : formData.tipoDocumento === 'Pasaporte'
+                      ? 'ABC123456'
+                      : 'Número de documento'
+                  }
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              {validacionDocumento && formData.numeroDocumento && (
+                <div
+                  className={`mt-2 text-sm flex items-center gap-2 ${
+                    validacionDocumento.valido ? 'text-green-600' : 'text-red-600'
+                  }`}
+                >
+                  {validacionDocumento.valido ? '✅' : '❌'} {validacionDocumento.error || 'Documento válido'}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Mostrar documento completo */}
+          {formData.tipoDocumento && formData.numeroDocumento && (
+            <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+              <p className="text-sm text-gray-600">
+                <span className="font-medium">Documento:</span> {formData.tipoDocumento}
+                {formData.paisDocumento && ` (${formData.paisDocumento})`}
+                {formData.tipoOtroDocumento && ` - ${formData.tipoOtroDocumento}`} {formData.numeroDocumento}
+              </p>
+            </div>
+          )}
+        </div>
+
         {/* Dirección */}
         <div>
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Dirección</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
+              <label htmlFor="direccion" className="block text-sm font-medium text-gray-700 mb-1">
+                Dirección
+              </label>
               <input
                 type="text"
+                id="direccion"
                 name="direccion"
                 value={formData.direccion || ''}
                 onChange={handleChange}
@@ -198,9 +357,12 @@ export default function EditarClientePage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Código Postal</label>
+              <label htmlFor="codigoPostal" className="block text-sm font-medium text-gray-700 mb-1">
+                Código Postal
+              </label>
               <input
                 type="text"
+                id="codigoPostal"
                 name="codigoPostal"
                 value={formData.codigoPostal || ''}
                 onChange={handleChange}
@@ -209,9 +371,12 @@ export default function EditarClientePage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Población</label>
+              <label htmlFor="poblacion" className="block text-sm font-medium text-gray-700 mb-1">
+                Población
+              </label>
               <input
                 type="text"
+                id="poblacion"
                 name="poblacion"
                 value={formData.poblacion || ''}
                 onChange={handleChange}
@@ -220,9 +385,12 @@ export default function EditarClientePage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Provincia</label>
+              <label htmlFor="provincia" className="block text-sm font-medium text-gray-700 mb-1">
+                Provincia
+              </label>
               <input
                 type="text"
+                id="provincia"
                 name="provincia"
                 value={formData.provincia || ''}
                 onChange={handleChange}
@@ -236,8 +404,11 @@ export default function EditarClientePage() {
         <div>
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Información Adicional</h2>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Situación Actual</label>
+            <label htmlFor="situacionActual" className="block text-sm font-medium text-gray-700 mb-1">
+              Situación Actual
+            </label>
             <textarea
+              id="situacionActual"
               name="situacionActual"
               value={formData.situacionActual || ''}
               onChange={handleChange}
