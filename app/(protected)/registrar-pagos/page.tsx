@@ -28,11 +28,19 @@ const FORMAS_PAGO = ['Efectivo', 'Transferencia', 'Tarjeta', 'Cheque']
 export default function RegistrarPagosPage() {
   const router = useRouter()
   const [vencimientos, setVencimientos] = useState<Vencimiento[]>([])
+  const [vencimientosFiltratos, setVencimientosFiltratos] = useState<Vencimiento[]>([])
   const [loading, setLoading] = useState(true)
-  const [editandoId, setEditandoId] = useState<string | null>(null)
+  const [registrandoId, setRegistrandoId] = useState<string | null>(null)
   const [editData, setEditData] = useState<Partial<Vencimiento>>({})
   const [saving, setSaving] = useState(false)
-  const [filtro, setFiltro] = useState<'pendientes' | 'todos'>('pendientes')
+
+  // Filtros
+  const [searchTerm, setSearchTerm] = useState('')
+  const [estadoFiltro, setEstadoFiltro] = useState<'todos' | 'pendientes' | 'vencidos' | 'pagados'>('pendientes')
+  const [formaPagoFiltro, setFormaPagoFiltro] = useState('')
+  const [fechaDesdeFiltro, setFechaDesdeFiltro] = useState('')
+  const [fechaHastaFiltro, setFechaHastaFiltro] = useState('')
+  const [categoriaFiltro, setCategoriaFiltro] = useState('')
 
   useEffect(() => {
     loadData()
@@ -40,7 +48,15 @@ export default function RegistrarPagosPage() {
 
   const loadData = async () => {
     try {
-      const response = await fetch('/api/vencimientos')
+      const params = new URLSearchParams()
+      if (searchTerm) params.append('search', searchTerm)
+      if (estadoFiltro !== 'todos') params.append('estado', estadoFiltro)
+      if (formaPagoFiltro) params.append('formaPago', formaPagoFiltro)
+      if (fechaDesdeFiltro) params.append('fechaDesde', fechaDesdeFiltro)
+      if (fechaHastaFiltro) params.append('fechaHasta', fechaHastaFiltro)
+      if (categoriaFiltro) params.append('categoria', categoriaFiltro)
+
+      const response = await fetch(`/api/vencimientos?${params.toString()}`)
       if (!response.ok) throw new Error('Error cargando vencimientos')
       const data = await response.json()
       setVencimientos(data || [])
@@ -52,19 +68,25 @@ export default function RegistrarPagosPage() {
     }
   }
 
-  const iniciarEdicion = (vencimiento: Vencimiento) => {
-    setEditandoId(vencimiento.id)
+  // Recargar cuando cambian los filtros
+  useEffect(() => {
+    setLoading(true)
+    loadData()
+  }, [searchTerm, estadoFiltro, formaPagoFiltro, fechaDesdeFiltro, fechaHastaFiltro, categoriaFiltro])
+
+  const iniciarRegistroPago = (vencimiento: Vencimiento) => {
+    setRegistrandoId(vencimiento.id)
     setEditData({
-      pagado: vencimiento.pagado,
-      fechaPago: vencimiento.fechaPago?.split('T')[0] || new Date().toISOString().split('T')[0],
+      pagado: true,
+      fechaPago: new Date().toISOString().split('T')[0],
       formaPago: vencimiento.formaPago,
       importe: vencimiento.importe,
       notas: vencimiento.notas || '',
     })
   }
 
-  const cancelarEdicion = () => {
-    setEditandoId(null)
+  const cancelarRegistro = () => {
+    setRegistrandoId(null)
     setEditData({})
   }
 
@@ -80,7 +102,7 @@ export default function RegistrarPagosPage() {
       if (!response.ok) throw new Error('Error al guardar')
 
       toast.success('✅ Pago registrado')
-      setEditandoId(null)
+      setRegistrandoId(null)
       await loadData()
     } catch (error) {
       toast.error('Error registrando pago')
@@ -143,48 +165,120 @@ export default function RegistrarPagosPage() {
         <p className="text-gray-600 mt-2">Gestiona los pagos de todos los trámites</p>
       </div>
 
-      <div className="mb-6 flex gap-4">
-        <button
-          onClick={() => setFiltro('pendientes')}
-          className={`px-6 py-2 font-semibold rounded-lg transition ${
-            filtro === 'pendientes'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          }`}
-        >
-          📌 Pagos Pendientes ({vencimientos.filter((v) => !v.pagado).length})
-        </button>
-        <button
-          onClick={() => setFiltro('todos')}
-          className={`px-6 py-2 font-semibold rounded-lg transition ${
-            filtro === 'todos'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          }`}
-        >
-          📋 Todos ({vencimientos.length})
-        </button>
-        {vencidosPendientes > 0 && (
-          <div className="ml-auto bg-red-100 border border-red-300 rounded-lg p-3">
-            <p className="text-red-800 font-semibold">⚠️ {vencidosPendientes} pago(s) vencido(s)</p>
+      {/* Buscador y Filtros */}
+      <div className="mb-8 bg-white rounded-lg shadow p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">🔍 Búsqueda y Filtros</h2>
+
+        <div className="space-y-4">
+          {/* Búsqueda de texto libre */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Cliente o Expediente</label>
+            <input
+              type="text"
+              placeholder="Buscar por nombre del cliente o código de expediente..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
           </div>
-        )}
+
+          {/* Filtros en grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            {/* Estado */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Estado</label>
+              <select
+                value={estadoFiltro}
+                onChange={(e) => setEstadoFiltro(e.target.value as any)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="todos">Todos</option>
+                <option value="pendientes">Pendientes</option>
+                <option value="vencidos">Vencidos</option>
+                <option value="pagados">Pagados</option>
+              </select>
+            </div>
+
+            {/* Forma de Pago */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Forma de Pago</label>
+              <select
+                value={formaPagoFiltro}
+                onChange={(e) => setFormaPagoFiltro(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Todas</option>
+                {FORMAS_PAGO.map((forma) => (
+                  <option key={forma} value={forma}>{forma}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Fecha Desde */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Desde</label>
+              <input
+                type="date"
+                value={fechaDesdeFiltro}
+                onChange={(e) => setFechaDesdeFiltro(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            {/* Fecha Hasta */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Hasta</label>
+              <input
+                type="date"
+                value={fechaHastaFiltro}
+                onChange={(e) => setFechaHastaFiltro(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            {/* Categoría */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Categoría</label>
+              <select
+                value={categoriaFiltro}
+                onChange={(e) => setCategoriaFiltro(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Todas</option>
+                <option value="residencia">Residencia</option>
+                <option value="trabajo">Trabajo</option>
+                <option value="nacionalidad">Nacionalidad</option>
+                <option value="visado">Visado</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Resultados */}
+          <div className="pt-4 border-t border-gray-200">
+            <p className="text-sm text-gray-600">
+              <span className="font-semibold">{vencimientos.length}</span> vencimiento(s) encontrado(s)
+              {vencidosPendientes > 0 && (
+                <span className="ml-4 text-red-600 font-semibold">⚠️ {vencidosPendientes} vencido(s)</span>
+              )}
+            </p>
+          </div>
+        </div>
       </div>
 
-      {vencimientosFiltrados.length === 0 ? (
+      {vencimientos.length === 0 ? (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-8 text-center">
-          <p className="text-blue-900 font-semibold">No hay pagos en esta categoría</p>
+          <p className="text-blue-900 font-semibold">No hay pagos con estos filtros</p>
         </div>
       ) : (
         <div className="space-y-4">
-          {vencimientosFiltrados.map((v) => (
+          {vencimientos.map((v) => (
             <div
               key={v.id}
               className={`border rounded-lg p-4 ${
                 v.pagado ? 'bg-green-50 border-green-300' : 'bg-white border-gray-300'
               }`}
             >
-              {editandoId === v.id ? (
+              {registrandoId === v.id ? (
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
@@ -251,7 +345,7 @@ export default function RegistrarPagosPage() {
                       disabled={saving}
                       className="px-6 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-semibold rounded-lg transition"
                     >
-                      {saving ? 'Guardando...' : '✅ Guardar'}
+                      {saving ? 'Guardando...' : '✅ Guardar Pago'}
                     </button>
                     {editData.pagado && (
                       <button
@@ -259,11 +353,11 @@ export default function RegistrarPagosPage() {
                         disabled={saving}
                         className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold rounded-lg transition"
                       >
-                        🧾 Recibo
+                        🧾 Generar Recibo
                       </button>
                     )}
                     <button
-                      onClick={cancelarEdicion}
+                      onClick={cancelarRegistro}
                       className="px-6 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold rounded-lg transition"
                     >
                       Cancelar
@@ -324,15 +418,25 @@ export default function RegistrarPagosPage() {
                         onClick={() => generarRecibo(v.id)}
                         className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition text-sm whitespace-nowrap"
                       >
-                        🧾 Recibo
+                        🧾 Ver Recibo
                       </button>
                     )}
-                    <button
-                      onClick={() => iniciarEdicion(v)}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition text-sm whitespace-nowrap"
-                    >
-                      ✏️ Editar
-                    </button>
+                    {!v.pagado && (
+                      <button
+                        onClick={() => iniciarRegistroPago(v)}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition text-sm whitespace-nowrap"
+                      >
+                        💳 Registrar Pago
+                      </button>
+                    )}
+                    {v.pagado && (
+                      <button
+                        onClick={() => iniciarRegistroPago(v)}
+                        className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition text-sm whitespace-nowrap"
+                      >
+                        ✏️ Editar
+                      </button>
+                    )}
                   </div>
                 </div>
               )}

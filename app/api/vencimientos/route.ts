@@ -4,6 +4,12 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function GET(req: NextRequest) {
   try {
     const tramiteId = req.nextUrl.searchParams.get('tramiteId')
+    const searchTerm = req.nextUrl.searchParams.get('search') // Nombre o código
+    const estado = req.nextUrl.searchParams.get('estado') // 'pendiente', 'pagado', 'vencido'
+    const formaPago = req.nextUrl.searchParams.get('formaPago')
+    const fechaDesde = req.nextUrl.searchParams.get('fechaDesde')
+    const fechaHasta = req.nextUrl.searchParams.get('fechaHasta')
+    const categoria = req.nextUrl.searchParams.get('categoria')
 
     if (tramiteId) {
       // Si hay tramiteId, devolver solo los vencimientos de ese trámite
@@ -13,12 +19,58 @@ export async function GET(req: NextRequest) {
       })
       return NextResponse.json(vencimientos)
     } else {
+      // Construir filtros dinámicos
+      const where: any = {}
+
+      // Búsqueda por nombre de cliente o código de trámite
+      if (searchTerm) {
+        where.tramite = {
+          OR: [
+            { codigo: { contains: searchTerm, mode: 'insensitive' } },
+            { cliente: { nombreCompleto: { contains: searchTerm, mode: 'insensitive' } } },
+          ],
+        }
+      }
+
+      // Filtro por estado
+      if (estado === 'pendiente') {
+        where.pagado = false
+        where.fechaVencimiento = { gte: new Date() }
+      } else if (estado === 'vencido') {
+        where.pagado = false
+        where.fechaVencimiento = { lt: new Date() }
+      } else if (estado === 'pagado') {
+        where.pagado = true
+      }
+
+      // Filtro por forma de pago
+      if (formaPago) {
+        where.formaPago = formaPago
+      }
+
+      // Filtro por rango de fechas
+      if (fechaDesde || fechaHasta) {
+        where.fechaVencimiento = {}
+        if (fechaDesde) where.fechaVencimiento.gte = new Date(fechaDesde)
+        if (fechaHasta) where.fechaVencimiento.lte = new Date(fechaHasta)
+      }
+
+      // Filtro por categoría de trámite
+      if (categoria) {
+        where.tramite = {
+          ...where.tramite,
+          tramiteConfig: { categoria },
+        }
+      }
+
       // Si no hay tramiteId, devolver todos los vencimientos con info del trámite
       const vencimientos = await db.vencimiento.findMany({
+        where,
         include: {
           tramite: {
             include: {
               cliente: true,
+              tramiteConfig: true,
             },
           },
         },
