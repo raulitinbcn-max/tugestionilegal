@@ -17,10 +17,17 @@ interface PlantillaRegistrada {
   driveFileId: string
 }
 
+interface Tramite {
+  tipoTramite: string
+  nombre: string
+  descripcion?: string
+  categoria?: string
+}
+
 export default function Plantillas2AdminPage() {
   const [plantillasDisponibles, setPlantillasDisponibles] = useState<PlantillaDisponible[]>([])
   const [plantillasRegistradas, setPlantillasRegistradas] = useState<PlantillaRegistrada[]>([])
-  const [tramites, setTramites] = useState<string[]>([])
+  const [tramites, setTramites] = useState<Tramite[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedPlantilla, setSelectedPlantilla] = useState<string>('')
   const [selectedTipo, setSelectedTipo] = useState<string>('contrato')
@@ -59,10 +66,9 @@ export default function Plantillas2AdminPage() {
       if (tramitesResponse.ok) {
         const tramitesData = await tramitesResponse.json()
         const tramitesList = tramitesData.tramites || []
-        const tramitesNombres = tramitesList.map((t: any) => t.nombre || t)
-        setTramites(tramitesNombres)
-        if (tramitesNombres.length > 0 && !selectedTramite) {
-          setSelectedTramite(tramitesNombres[0])
+        setTramites(tramitesList)
+        if (tramitesList.length > 0 && !selectedTramite) {
+          setSelectedTramite(tramitesList[0].tipoTramite)
         }
       }
     } catch (error) {
@@ -189,8 +195,8 @@ export default function Plantillas2AdminPage() {
                 >
                   <option value="">Selecciona un trámite...</option>
                   {tramites.map((tramite) => (
-                    <option key={tramite} value={tramite}>
-                      {tramite}
+                    <option key={tramite.tipoTramite} value={tramite.tipoTramite}>
+                      {tramite.nombre}
                     </option>
                   ))}
                 </select>
