@@ -150,11 +150,7 @@ export default function RegistrarPagosPage() {
 
   if (loading) return <div className="p-8">Cargando...</div>
 
-  const vencimientosFiltrados = filtro === 'pendientes'
-    ? vencimientos.filter((v) => !v.pagado)
-    : vencimientos
-
-  const vencidosPendientes = vencimientosFiltrados.filter(
+  const vencidosPendientes = vencimientos.filter(
     (v) => !v.pagado && new Date(v.fechaVencimiento) < new Date()
   ).length
 
