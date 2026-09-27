@@ -14,7 +14,9 @@ export async function GET(req: NextRequest) {
 
     const servicios = await db.servicioAdicional.findMany({
       include: {
-        tramiteConfig: true,
+        asignacionesTramites: {
+          include: { tramiteConfig: true },
+        },
       },
       orderBy: { nombre: 'asc' },
     })
@@ -45,25 +47,32 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Calcular total
-    const porcentajeIVA = body.porcentajeIVA || 21
-    const suplicosBase = body.suplicosBase || 0
-    const montoIVA = Math.round((body.precioBase * porcentajeIVA / 100) * 100) / 100
-    const total = body.precioBase + montoIVA + suplicosBase
-
     const servicio = await db.servicioAdicional.create({
       data: {
         nombre: body.nombre,
         descripcion: body.descripcion || null,
         precioBase: parseFloat(body.precioBase),
-        porcentajeIVA,
-        suplicosBase,
-        total,
-        tramiteConfigId: body.tramiteConfigId || null,
+        porcentajeIVA: body.porcentajeIVA || 21,
+        suplicosBase: body.suplicosBase || 0,
         documentosRequeridos: body.documentosRequeridos || null,
         activo: body.activo !== false,
       },
+      include: {
+        asignacionesTramites: {
+          include: { tramiteConfig: true },
+        },
+      },
     })
+
+    // Si hay tramiteConfigId, crear asignación
+    if (body.tramiteConfigId) {
+      await db.servicioAsignado.create({
+        data: {
+          servicioId: servicio.id,
+          tramiteConfigId: body.tramiteConfigId,
+        },
+      })
+    }
 
     return NextResponse.json(servicio, { status: 201 })
   } catch (error) {

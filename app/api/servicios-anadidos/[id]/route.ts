@@ -35,32 +35,10 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
     let updateData: any = {}
 
-    // Si cambian precios, recalcular total
-    if (body.precioBase !== undefined || body.porcentajeIVA !== undefined || body.suplicosBase !== undefined) {
-      const servicioActual = await db.servicioAnadidoEnExpediente.findUnique({
-        where: { id: params.id },
-      })
-
-      if (!servicioActual) {
-        return NextResponse.json({ error: 'Servicio no encontrado' }, { status: 404 })
-      }
-
-      const precioBase = body.precioBase !== undefined ? body.precioBase : servicioActual.precioBase
-      const porcentajeIVA = body.porcentajeIVA !== undefined ? body.porcentajeIVA : servicioActual.porcentajeIVA
-      const suplicosBase = body.suplicosBase !== undefined ? body.suplicosBase : servicioActual.suplicosBase
-
-      const montoIVA = Math.round((precioBase * porcentajeIVA / 100) * 100) / 100
-      const total = precioBase + montoIVA + suplicosBase
-
-      updateData = {
-        precioBase,
-        porcentajeIVA,
-        suplicosBase,
-        montoIVA,
-        suplicosTotales: suplicosBase,
-        total,
-      }
-    }
+    // Actualizar campos de precio si se proporcionan
+    if (body.precioBase !== undefined) updateData.precioBase = body.precioBase
+    if (body.porcentajeIVA !== undefined) updateData.porcentajeIVA = body.porcentajeIVA
+    if (body.suplicosBase !== undefined) updateData.suplicosBase = body.suplicosBase
 
     const servicioAnadido = await db.servicioAnadidoEnExpediente.update({
       where: { id: params.id },

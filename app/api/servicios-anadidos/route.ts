@@ -65,14 +65,10 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Calcular montos (copiar valores del servicio)
+    // Copiar valores del servicio
     const precioBase = body.precioBase || servicio.precioBase
     const porcentajeIVA = body.porcentajeIVA !== undefined ? body.porcentajeIVA : servicio.porcentajeIVA
     const suplicosBase = body.suplicosBase !== undefined ? body.suplicosBase : servicio.suplicosBase
-
-    const montoIVA = Math.round((precioBase * porcentajeIVA / 100) * 100) / 100
-    const suplicosTotales = suplicosBase
-    const total = precioBase + montoIVA + suplicosTotales
 
     const servicioAnadido = await db.servicioAnadidoEnExpediente.create({
       data: {
@@ -82,9 +78,6 @@ export async function POST(req: NextRequest) {
         precioBase,
         porcentajeIVA,
         suplicosBase,
-        montoIVA,
-        suplicosTotales,
-        total,
       },
     })
 

@@ -92,11 +92,11 @@ model TramiteConfiguracion {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  checkDocumentos   CheckDocumento[]
+  checkDocumentos    CheckDocumento[]
   tasasConfiguracion TasaConfiguracion[]
-  serviciosAdicionales ServicioAdicional[]
-  plantillas        Plantilla[]
-  tramites          Tramite[]
+  serviciosAsignados ServicioAsignado[]
+  plantillas         Plantilla[]
+  tramites           Tramite[]
 
   @@map("tramites_configuracion")
 }
@@ -128,24 +128,36 @@ model Tasa {
 
 model ServicioAdicional {
   id                    String   @id @default(cuid())
-  nombre                String   @unique
+  nombre                String
   descripcion           String?
   precioBase            Float
   porcentajeIVA         Float   @default(21)
   suplicosBase          Float   @default(0)
-  total                 Float    // Calculado: precioBase + (precioBase * porcentajeIVA / 100) + suplicosBase
   documentosRequeridos  String?  // JSON: array de documentos requeridos
-  // Asociación opcional a trámites específicos (si null, es genérico para todos)
-  tramiteConfigId       String?
-  tramiteConfig         TramiteConfiguracion? @relation(fields: [tramiteConfigId], references: [id], onDelete: SetNull)
   activo                Boolean  @default(true)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
+  // Relaciones
+  asignacionesTramites  ServicioAsignado[]
   serviciosAnadidos     ServicioAnadidoEnExpediente[]
 
-  @@index([tramiteConfigId])
+  @@unique([nombre])
   @@map("servicios_adicionales")
+}
+
+model ServicioAsignado {
+  id                    String   @id @default(cuid())
+  servicioId            String
+  servicio              ServicioAdicional @relation(fields: [servicioId], references: [id], onDelete: Cascade)
+  tramiteConfigId       String
+  tramiteConfig         TramiteConfiguracion @relation(fields: [tramiteConfigId], references: [id], onDelete: Cascade)
+  createdAt             DateTime @default(now())
+
+  @@unique([servicioId, tramiteConfigId])
+  @@index([tramiteConfigId])
+  @@index([servicioId])
+  @@map("servicios_asignados")
 }
 
 
@@ -160,9 +172,6 @@ model ServicioAnadidoEnExpediente {
   precioBase            Float
   porcentajeIVA         Float   @default(21)
   suplicosBase          Float   @default(0)
-  montoIVA              Float   @default(0)     // Calculado al añadir
-  suplicosTotales       Float   @default(0)     // Suplidos base + suplidos del trámite
-  total                 Float                   // Calculado: precioBase + montoIVA + suplicosTotales
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 

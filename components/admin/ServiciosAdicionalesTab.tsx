@@ -10,12 +10,19 @@ interface ServicioAdicional {
   precioBase: number
   porcentajeIVA: number
   suplicosBase: number
-  total: number
-  tramiteConfigId?: string | null
-  tramiteConfig?: {
-    nombre: string
-  } | null
+  asignacionesTramites: Array<{
+    id: string
+    tramiteConfig: {
+      id: string
+      nombre: string
+    }
+  }>
   activo: boolean
+}
+
+const calcularTotal = (precioBase: number, porcentajeIVA: number, suplicosBase: number) => {
+  const montoIVA = Math.round((precioBase * porcentajeIVA / 100) * 100) / 100
+  return precioBase + montoIVA + suplicosBase
 }
 
 interface TramiteConfig {
@@ -67,7 +74,7 @@ export default function ServiciosAdicionalesTab() {
       suplicosBase: 0,
       tramiteConfigId: null,
       activo: true,
-    })
+    } as any)
   }
 
   const handleEditar = (servicio: ServicioAdicional) => {
@@ -273,7 +280,14 @@ export default function ServiciosAdicionalesTab() {
                       className="w-24 px-2 py-1 border border-gray-300 rounded"
                     />
                   </td>
-                  <td className="px-6 py-3 text-sm font-semibold">{formData.total || servicio.total}€</td>
+                  <td className="px-6 py-3 text-sm font-semibold">
+                    {calcularTotal(
+                      formData.precioBase || servicio.precioBase,
+                      formData.porcentajeIVA || servicio.porcentajeIVA,
+                      formData.suplicosBase || servicio.suplicosBase
+                    ).toFixed(2)}
+                    €
+                  </td>
                   <td className="px-6 py-3">
                     <select
                       value={formData.tramiteConfigId || ''}
@@ -310,12 +324,18 @@ export default function ServiciosAdicionalesTab() {
                   <td className="px-6 py-3">{servicio.precioBase}€</td>
                   <td className="px-6 py-3">{servicio.porcentajeIVA}%</td>
                   <td className="px-6 py-3">{servicio.suplicosBase}€</td>
-                  <td className="px-6 py-3 font-semibold">{servicio.total}€</td>
+                  <td className="px-6 py-3 font-semibold">
+                    {calcularTotal(servicio.precioBase, servicio.porcentajeIVA, servicio.suplicosBase).toFixed(2)}€
+                  </td>
                   <td className="px-6 py-3">
-                    {servicio.tramiteConfig ? (
-                      <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm">
-                        {servicio.tramiteConfig.nombre}
-                      </span>
+                    {servicio.asignacionesTramites?.length > 0 ? (
+                      <div className="flex flex-col gap-1">
+                        {servicio.asignacionesTramites.map((asignacion) => (
+                          <span key={asignacion.id} className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm">
+                            {asignacion.tramiteConfig.nombre}
+                          </span>
+                        ))}
+                      </div>
                     ) : (
                       <span className="text-gray-500 text-sm">Genérico</span>
                     )}
