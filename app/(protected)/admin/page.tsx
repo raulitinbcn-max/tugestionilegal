@@ -8,6 +8,7 @@ import TasasConfigTab from '@/components/admin/TasasConfigTab'
 import ServiciosAdicionalesTab from '@/components/admin/ServiciosAdicionalesTab'
 import CheckDocumentosTab from '@/components/admin/CheckDocumentosTab'
 import TiposDocumentoTab from '@/components/admin/TiposDocumentoTab'
+import UsuariosTab from '@/components/admin/UsuariosTab'
 
 type ActiveTab = 'tramites' | 'plantillas' | 'tasas' | 'servicios-adicionales' | 'check-documentos' | 'tipos-documento' | 'usuarios'
 
@@ -55,12 +56,7 @@ export default function AdminPage() {
         {activeTab === 'servicios-adicionales' && <ServiciosAdicionalesTab />}
         {activeTab === 'check-documentos' && <CheckDocumentosTab />}
         {activeTab === 'tipos-documento' && <TiposDocumentoTab />}
-        {activeTab === 'usuarios' && (
-          <div className="p-8 text-center text-gray-600">
-            <p className="text-lg font-semibold">👥 Gestión de Usuarios</p>
-            <p className="text-sm mt-2">Por implementar</p>
-          </div>
-        )}
+        {activeTab === 'usuarios' && <UsuariosTab />}
       </div>
     </div>
   )
