@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { formatEuro } from '@/lib/format'
-import { getLocationFromPostalCode } from '@/lib/postal-codes'
+import { getProvinciaFromCodigoPostal } from '@/lib/postal-codes'
 
 const FORMAS_PAGO = ['Efectivo', 'Transferencia', 'Tarjeta', 'Cheque']
 
@@ -276,18 +276,19 @@ export default function TramiteForm() {
       }
     }
 
-    // Autocompletar población y provincia según código postal (solo si "Dirección en España" está marcado)
     if (name === 'codigoPostal' && value.length === 5 && formData.direccionEnEspana) {
-      const location = getLocationFromPostalCode(value)
-      if (location) {
-        setFormData((prev) => ({
-          ...prev,
-          [name]: processedValue,
-          poblacion: location.poblacion,
-          provincia: location.provincia,
-        }))
-        return
-      }
+      setFormData((prev) => ({
+        ...prev,
+        [name]: processedValue,
+        provincia: getProvinciaFromCodigoPostal(value) ?? '',
+      }))
+      fetch(`/api/codigo-postal/${value}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (!data?.poblacion) return
+          setFormData((prev) => (prev.codigoPostal === value ? { ...prev, poblacion: data.poblacion } : prev))
+        })
+      return
     }
 
     setFormData((prev) => ({
@@ -706,7 +707,6 @@ export default function TramiteForm() {
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Barcelona"
-              readOnly={formData.direccionEnEspana && formData.codigoPostal.length === 5}
             />
           </div>
 

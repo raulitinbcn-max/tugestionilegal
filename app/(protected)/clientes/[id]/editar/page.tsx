@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 import { validarDocumento, PAISES } from '@/lib/documento-validator'
-import { getLocationFromPostalCode } from '@/lib/postal-codes'
+import { getProvinciaFromCodigoPostal } from '@/lib/postal-codes'
 
 interface Pais {
   id: string
@@ -127,18 +127,19 @@ export default function EditarClientePage() {
       }
     }
 
-    // Autocompletar población y provincia según código postal (solo si "Dirección en España" está marcado)
     if (name === 'codigoPostal' && processedValue.length === 5 && formData.direccionEnEspana !== false) {
-      const location = getLocationFromPostalCode(processedValue)
-      if (location) {
-        setFormData((prev) => ({
-          ...prev,
-          [name]: processedValue,
-          poblacion: location.poblacion,
-          provincia: location.provincia,
-        }))
-        return
-      }
+      setFormData((prev) => ({
+        ...prev,
+        [name]: processedValue,
+        provincia: getProvinciaFromCodigoPostal(processedValue) ?? '',
+      }))
+      fetch(`/api/codigo-postal/${processedValue}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (!data?.poblacion) return
+          setFormData((prev) => (prev.codigoPostal === processedValue ? { ...prev, poblacion: data.poblacion } : prev))
+        })
+      return
     }
 
     const newFormData = {
@@ -592,7 +593,6 @@ export default function EditarClientePage() {
                 value={formData.poblacion || ''}
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                readOnly={!!(formData.codigoPostal && (formData.codigoPostal as string).length === 5)}
               />
             </div>
 
