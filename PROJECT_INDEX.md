@@ -80,7 +80,7 @@ tugestionlegal/
 - `app/layout.tsx` - Navbar con botón logout
 
 ### Admin (Whitelist)
-- `app/(protected)/admin/usuarios/page.tsx` - Tabla de usuarios
+- `components/admin/UsuariosTab.tsx` - Pestaña Usuarios de /admin
 - `app/api/admin/usuarios/route.ts` - GET/POST usuarios
 - `app/api/admin/usuarios/[id]/route.ts` - PATCH/DELETE usuario
 
