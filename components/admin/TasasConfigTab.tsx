@@ -3,379 +3,312 @@
 import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
 
-interface TasaConfig {
-  id?: string
-  nombre: string
-  importe: number
-}
-
-interface TasasConfigState {
-  [tipoTramite: string]: TasaConfig[]
-}
-
 interface Categoria {
   id: string
   clave: string
-  codigo: string
   nombre: string
   icono?: string
-  color?: string
 }
 
-interface TramiteConfig {
+interface Tramite {
+  id: string
+  tipoTramite: string
+  nombre: string
+  categoria?: string
+}
+
+interface Tasa {
   id: string
   nombre: string
-  descripcion?: string
-  categoria?: string
-  plantillasDisponibles?: string[]
-  camposRequeridos?: string[]
+  importe: number
+  categoriaId: string | null
+  tramiteConfigIds: string[]
 }
 
 export default function TasasConfigTab() {
-  const [tasasConfig, setTasasConfig] = useState<TasasConfigState>({})
-  const [tramitesConfig, setTramitesConfig] = useState<Record<string, TramiteConfig>>({})
   const [categorias, setCategorias] = useState<Categoria[]>([])
-  const [selectedCategoria, setSelectedCategoria] = useState<string>('ALL')
-  const [saving, setSaving] = useState(false)
+  const [tramites, setTramites] = useState<Tramite[]>([])
+  const [tasas, setTasas] = useState<Tasa[]>([])
+  const [categoriaId, setCategoriaId] = useState('')
   const [loading, setLoading] = useState(true)
-  const [tasaNueva, setTasaNueva] = useState({ nombre: '', importe: 0, tipoTramite: '' })
+  const [nueva, setNueva] = useState({ nombre: '', importe: '' })
+
+  const cargar = async () => {
+    try {
+      const [catRes, tramRes, tasasRes] = await Promise.all([
+        fetch('/api/admin/categorias-tramite'),
+        fetch('/api/admin/tramites-list'),
+        fetch('/api/admin/tasas-config'),
+      ])
+      if (!catRes.ok || !tramRes.ok || !tasasRes.ok) throw new Error('Error al cargar datos')
+
+      const cats: Categoria[] = await catRes.json()
+      const tramData = await tramRes.json()
+      const tasasData = await tasasRes.json()
+
+      setCategorias(cats)
+      setTramites(tramData.tramites || [])
+      setTasas(tasasData.tasas || [])
+      setCategoriaId((prev) => prev || cats[0]?.id || '')
+    } catch (error) {
+      toast.error('Error cargando tasas')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        // Load categorias
-        const categResponse = await fetch('/api/admin/categorias-tramite')
-        if (categResponse.ok) {
-          const categData = await categResponse.json()
-          setCategorias(Array.isArray(categData) ? categData : [])
-        }
-
-        // Load tramites config - use dedicated endpoint
-        const tramitesResponse = await fetch('/api/admin/tramites-list')
-        if (tramitesResponse.ok) {
-          const tramitesData = await tramitesResponse.json()
-          const tramitesArray = tramitesData.tramites || []
-          const tramitesMap: Record<string, TramiteConfig> = {}
-
-          tramitesArray.forEach((t: any) => {
-            tramitesMap[t.tipoTramite] = {
-              id: t.id,
-              nombre: t.nombre,
-              descripcion: t.descripcion || '',
-              categoria: t.categoria || '',
-            }
-          })
-
-          setTramitesConfig(tramitesMap)
-        }
-
-        // Load tasas - already grouped by tipoTramite
-        const tasasResponse = await fetch('/api/admin/tasas-config')
-        if (tasasResponse.ok) {
-          const tasasData = await tasasResponse.json()
-          const tasasMap = tasasData.tasasConfig || {}
-          setTasasConfig(tasasMap)
-        }
-      } catch (error) {
-        console.error('Error cargando datos:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadData()
+    cargar()
   }, [])
 
-  const updateTasa = (tipoTramite: string, index: number, field: string, value: any) => {
-    const updated = { ...tasasConfig }
-    updated[tipoTramite][index] = {
-      ...updated[tipoTramite][index],
-      [field]: field === 'importe' ? parseFloat(value) : value,
+  const categoriaActual = categorias.find((c) => c.id === categoriaId)
+  const tramitesDeCategoria = categoriaActual
+    ? tramites.filter((t) => t.categoria === categoriaActual.clave)
+    : []
+  const tasasDeCategoria = tasas.filter((t) => t.categoriaId === categoriaId)
+
+  const crearTasa = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!categoriaId || !nueva.nombre.trim() || !nueva.importe) {
+      toast.error('Completa nombre e importe')
+      return
     }
-    setTasasConfig(updated)
-  }
 
-  const addTasa = (tipoTramite: string, nombre: string, importe: number) => {
-    const updated = { ...tasasConfig }
-    if (!updated[tipoTramite]) {
-      updated[tipoTramite] = []
-    }
-    updated[tipoTramite] = [...updated[tipoTramite], { nombre, importe }]
-    setTasasConfig(updated)
-  }
-
-  const removeTasa = (tipoTramite: string, index: number) => {
-    const updated = { ...tasasConfig }
-    updated[tipoTramite] = updated[tipoTramite].filter((_, i) => i !== index)
-    setTasasConfig(updated)
-  }
-
-  const handleSave = async () => {
-    setSaving(true)
     try {
-      // Find tramiteConfigId for each tipoTramite
-      const promises: Promise<Response>[] = []
-
-      Object.entries(tasasConfig).forEach(([tipoTramite, tasas]) => {
-        const tramite = tramitesConfig[tipoTramite]
-        if (!tramite) {
-          console.warn(`Trámite ${tipoTramite} no encontrado en tramitesConfig`, tramitesConfig)
-          return
-        }
-
-        // Create a POST for each NEW tasa (sin id)
-        tasas.forEach((tasa) => {
-          // Skip existing tasas (they have an id)
-          if (tasa.id) return
-
-          console.log(`Guardando tasa nueva ${tasa.nombre} para ${tipoTramite} con tramiteConfigId ${tramite.id}`)
-          promises.push(
-            fetch('/api/admin/tasas-config', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                tramiteConfigId: tramite.id,
-                nombre: tasa.nombre,
-                importe: parseFloat(tasa.importe.toString()),
-              }),
-            })
-          )
-        })
+      const res = await fetch('/api/admin/tasas-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          categoriaId,
+          nombre: nueva.nombre,
+          importe: parseFloat(nueva.importe),
+        }),
       })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Error al crear la tasa')
 
-      if (promises.length === 0) {
-        toast.error('No hay tasas para guardar')
-        setSaving(false)
-        return
-      }
-
-      const results = await Promise.all(promises)
-      const failures = results.filter(r => !r.ok)
-      if (failures.length > 0) {
-        throw new Error(`Error al guardar ${failures.length} tasa(s)`)
-      }
-
-      toast.success('✅ Configuración de tasas guardada')
-      await new Promise(r => setTimeout(r, 500)) // Wait before reload
-      window.location.reload()
-    } catch (error: any) {
-      console.error('Error:', error?.message || error)
-      toast.error(error?.message || 'Error al guardar configuración')
-    } finally {
-      setSaving(false)
+      toast.success('Tasa creada')
+      setNueva({ nombre: '', importe: '' })
+      await cargar()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Error al crear la tasa')
     }
-  }
-
-  const calcularTotalPorTramite = (tipoTramite: string) => {
-    return (tasasConfig[tipoTramite] || []).reduce((sum, tasa) => sum + tasa.importe, 0)
-  }
-
-  const getTramitesParaCategoria = (): string[] => {
-    if (selectedCategoria === 'ALL') return Object.keys(tramitesConfig)
-    const categInfo = categorias.find(c => c.id === selectedCategoria)
-    if (!categInfo) return Object.keys(tramitesConfig)
-    return Object.entries(tramitesConfig)
-      .filter(([_, config]) => config.categoria === categInfo.clave)
-      .map(([tipo, _]) => tipo)
-  }
-
-  const tramitesAMostrar = getTramitesParaCategoria()
-
-  const getCategoriaInfo = (categoriaClave: string) => {
-    return categorias.find(c => c.clave === categoriaClave)
   }
 
   if (loading) {
-    return <div className="p-8 text-center text-gray-500">Cargando configuración...</div>
+    return <div className="p-8 text-center text-gray-500">Cargando tasas...</div>
   }
 
   return (
     <div className="p-8">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">💰 Configuración de Tasas</h2>
-          <p className="text-gray-600 mt-2">Define las tasas predeterminadas para cada tipo de trámite</p>
-        </div>
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-semibold py-2 px-6 rounded-lg transition"
-        >
-          {saving ? 'Guardando...' : '💾 Guardar'}
-        </button>
-      </div>
+      <h2 className="text-2xl font-bold text-gray-900 mb-2">💰 Tasas por Categoría</h2>
+      <p className="text-gray-600 mb-6">
+        Crea las tasas de una categoría y después asígnalas a los trámites concretos.
+      </p>
 
-      {/* Filtro de Categoría */}
-      {categorias.length > 0 && (
-        <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <label className="block text-sm font-semibold text-gray-900 mb-2">Filtrar por Categoría</label>
-          <select
-            value={selectedCategoria}
-            onChange={(e) => setSelectedCategoria(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm"
-          >
-            <option value="ALL">📋 Todas las categorías</option>
-            {categorias.map((cat) => (
-              <option key={cat.id} value={cat.id}>
-                {cat.icono} {cat.nombre}
-              </option>
-            ))}
-          </select>
-          <p className="text-xs text-gray-600 mt-2">
-            Mostrando {tramitesAMostrar.length} trámite{tramitesAMostrar.length !== 1 ? 's' : ''}
-          </p>
-        </div>
-      )}
-
-      {/* Crear Nueva Tasa */}
-      <div className="mb-6 p-6 bg-green-50 rounded-lg border border-green-200">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">➕ Agregar Nueva Tasa</h3>
-        {Object.keys(tramitesConfig).length === 0 ? (
-          <p className="text-gray-600">Configura trámites primero en la pestaña "Trámites"</p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Trámite</label>
-              <select
-                value={tasaNueva.tipoTramite}
-                onChange={(e) => setTasaNueva({ ...tasaNueva, tipoTramite: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-              >
-                <option value="">-- Selecciona --</option>
-                {Object.keys(tramitesConfig).map((tramite) => (
-                  <option key={tramite} value={tramite}>
-                    {tramite}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
-              <input
-                type="text"
-                value={tasaNueva.nombre}
-                onChange={(e) => setTasaNueva({ ...tasaNueva, nombre: e.target.value })}
-                placeholder="Ej: Tasa de Tramitación"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Importe (€)</label>
-              <input
-                type="number"
-                value={tasaNueva.importe}
-                onChange={(e) => setTasaNueva({ ...tasaNueva, importe: parseFloat(e.target.value) || 0 })}
-                placeholder="0.00"
-                step="0.01"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-              />
-            </div>
-
-            <div className="flex items-end">
-              <button
-                onClick={() => {
-                  if (tasaNueva.nombre && tasaNueva.tipoTramite) {
-                    addTasa(tasaNueva.tipoTramite, tasaNueva.nombre, tasaNueva.importe)
-                    setTasaNueva({ nombre: '', importe: 0, tipoTramite: '' })
-                    setSelectedCategoria('ALL')
-                    toast.success('✅ Tasa agregada')
-                  } else {
-                    toast.error('Completa todos los campos')
-                  }
-                }}
-                className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg text-sm"
-              >
-                ✅ Agregar
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Tabla de Tasas por Trámite */}
-      <div className="grid grid-cols-1 gap-6">
-        {tramitesAMostrar.length === 0 ? (
-          <div className="bg-white rounded-lg shadow p-8 border-l-4 border-gray-300 text-center">
-            <p className="text-gray-500 text-lg">No hay trámites en esta categoría</p>
-            <button
-              onClick={() => setSelectedCategoria('ALL')}
-              className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold"
+      {categorias.length === 0 ? (
+        <p className="text-gray-600">No hay categorías. Créalas en la pestaña de categorías.</p>
+      ) : (
+        <>
+          <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <label htmlFor="categoriaTasas" className="block text-sm font-semibold text-gray-900 mb-2">
+              Categoría
+            </label>
+            <select
+              id="categoriaTasas"
+              name="categoriaTasas"
+              value={categoriaId}
+              onChange={(e) => setCategoriaId(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm"
             >
-              Ver todas las categorías
-            </button>
+              {categorias.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.icono} {cat.nombre}
+                </option>
+              ))}
+            </select>
           </div>
-        ) : (
-          tramitesAMostrar.map((tramite) => {
-            const tramiteCategoria = tramitesConfig[tramite]?.categoria || ''
-            const categInfo = getCategoriaInfo(tramiteCategoria)
-            return (
-              <div key={tramite} className="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h2 className="text-lg font-semibold text-gray-900">{tramite}</h2>
-                    {categInfo && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        {categInfo.icono} {categInfo.nombre}
-                      </p>
-                    )}
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-gray-600">Total de tasas</p>
-                    <p className="text-lg font-bold text-blue-600">
-                      €{calcularTotalPorTramite(tramite).toFixed(2)}
-                    </p>
-                  </div>
-                </div>
 
-                <div className="space-y-3 mb-4">
-                  {(tasasConfig[tramite] || []).map((tasa, index) => (
-                    <div key={index} className="flex gap-3 items-end bg-gray-50 p-3 rounded border border-gray-200">
-                      <div className="flex-1">
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Nombre</label>
-                        <input
-                          type="text"
-                          value={tasa.nombre}
-                          onChange={(e) => updateTasa(tramite, index, 'nombre', e.target.value)}
-                          placeholder="Ej: Tasa de Tramitación"
-                          className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
-                        />
-                      </div>
-                      <div className="w-32">
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Importe (€)</label>
-                        <input
-                          type="number"
-                          value={tasa.importe}
-                          onChange={(e) => updateTasa(tramite, index, 'importe', e.target.value)}
-                          step="0.01"
-                          placeholder="0.00"
-                          className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
-                        />
-                      </div>
-                      <button
-                        onClick={() => removeTasa(tramite, index)}
-                        className="px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 font-semibold rounded"
-                      >
-                        🗑️
-                      </button>
-                    </div>
-                  ))}
-                </div>
+          <form onSubmit={crearTasa} className="mb-8 p-6 bg-green-50 rounded-lg border border-green-200">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">➕ Nueva tasa en {categoriaActual?.nombre}</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <label htmlFor="nuevaTasaNombre" className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+                <input
+                  type="text"
+                  id="nuevaTasaNombre"
+                  name="nuevaTasaNombre"
+                  value={nueva.nombre}
+                  onChange={(e) => setNueva({ ...nueva, nombre: e.target.value })}
+                  placeholder="Ej: Tasa de Tramitación"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                />
               </div>
-            )
-          })
-        )}
+              <div>
+                <label htmlFor="nuevaTasaImporte" className="block text-sm font-medium text-gray-700 mb-1">Importe (€)</label>
+                <input
+                  type="number"
+                  id="nuevaTasaImporte"
+                  name="nuevaTasaImporte"
+                  value={nueva.importe}
+                  onChange={(e) => setNueva({ ...nueva, importe: e.target.value })}
+                  step="0.01"
+                  placeholder="0.00"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                />
+              </div>
+              <div className="flex items-end">
+                <button
+                  type="submit"
+                  className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg text-sm"
+                >
+                  ✅ Crear tasa
+                </button>
+              </div>
+            </div>
+          </form>
+
+          {tasasDeCategoria.length === 0 ? (
+            <p className="text-gray-500 text-center py-8">Esta categoría todavía no tiene tasas.</p>
+          ) : (
+            <div className="space-y-4">
+              {tasasDeCategoria.map((tasa) => (
+                <TasaFila
+                  key={tasa.id}
+                  tasa={tasa}
+                  tramitesDeCategoria={tramitesDeCategoria}
+                  onCambio={cargar}
+                />
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
+function TasaFila({
+  tasa,
+  tramitesDeCategoria,
+  onCambio,
+}: {
+  tasa: Tasa
+  tramitesDeCategoria: Tramite[]
+  onCambio: () => Promise<void>
+}) {
+  const [nombre, setNombre] = useState(tasa.nombre)
+  const [importe, setImporte] = useState(String(tasa.importe))
+  const [seleccion, setSeleccion] = useState<string[]>(tasa.tramiteConfigIds)
+  const [guardando, setGuardando] = useState(false)
+
+  const toggleTramite = (id: string) => {
+    setSeleccion((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }
+
+  const guardar = async () => {
+    setGuardando(true)
+    try {
+      const res = await fetch(`/api/admin/tasas-config/${tasa.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nombre,
+          importe: parseFloat(importe),
+          categoriaId: tasa.categoriaId,
+          tramiteConfigIds: seleccion,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Error al guardar la tasa')
+      toast.success('Tasa guardada')
+      await onCambio()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Error al guardar la tasa')
+    } finally {
+      setGuardando(false)
+    }
+  }
+
+  const eliminar = async () => {
+    if (!confirm(`¿Eliminar la tasa "${tasa.nombre}"?`)) return
+    try {
+      const res = await fetch(`/api/admin/tasas-config/${tasa.id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Error al eliminar la tasa')
+      toast.success('Tasa eliminada')
+      await onCambio()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Error al eliminar la tasa')
+    }
+  }
+
+  return (
+    <div className="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+        <div>
+          <label htmlFor={`nombre-${tasa.id}`} className="block text-xs font-medium text-gray-700 mb-1">Nombre</label>
+          <input
+            type="text"
+            id={`nombre-${tasa.id}`}
+            name={`nombre-${tasa.id}`}
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+          />
+        </div>
+        <div>
+          <label htmlFor={`importe-${tasa.id}`} className="block text-xs font-medium text-gray-700 mb-1">Importe (€)</label>
+          <input
+            type="number"
+            id={`importe-${tasa.id}`}
+            name={`importe-${tasa.id}`}
+            value={importe}
+            step="0.01"
+            onChange={(e) => setImporte(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+          />
+        </div>
+        <div className="flex items-end gap-2">
+          <button
+            type="button"
+            onClick={guardar}
+            disabled={guardando}
+            className="flex-1 px-3 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-semibold rounded text-sm"
+          >
+            💾 Guardar
+          </button>
+          <button
+            type="button"
+            onClick={eliminar}
+            className="px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 font-semibold rounded text-sm"
+          >
+            🗑️
+          </button>
+        </div>
       </div>
 
-      <div className="mt-8 flex gap-4">
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-semibold py-3 px-6 rounded-lg transition"
-        >
-          {saving ? 'Guardando...' : '💾 Guardar Configuración'}
-        </button>
+      <div>
+        <p className="text-xs font-medium text-gray-700 mb-2">Trámites a los que se asigna</p>
+        {tramitesDeCategoria.length === 0 ? (
+          <p className="text-sm text-gray-500">
+            No hay trámites en esta categoría. Asígnales la categoría en la pestaña Trámites.
+          </p>
+        ) : (
+          <div className="flex flex-wrap gap-4">
+            {tramitesDeCategoria.map((t) => (
+              <label key={t.id} className="flex items-center gap-2 text-sm text-gray-800">
+                <input
+                  type="checkbox"
+                  name={`asignar-${tasa.id}`}
+                  checked={seleccion.includes(t.id)}
+                  onChange={() => toggleTramite(t.id)}
+                  className="w-4 h-4 rounded border-gray-300 text-blue-600"
+                />
+                {t.tipoTramite}
+              </label>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

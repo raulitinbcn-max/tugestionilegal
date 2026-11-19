@@ -46,6 +46,7 @@ model CategoriasTramite {
 
   tramites          Tramite[]
   tiposDocumento    TipoDocumento[]
+  tasasConfiguracion TasaConfiguracion[]
 
   @@map("categorias_tramites")
 }
@@ -98,7 +99,7 @@ model TramiteConfiguracion {
   updatedAt         DateTime @updatedAt
 
   checkDocumentos    CheckDocumento[]
-  tasasConfiguracion TasaConfiguracion[]
+  tasasAsignadas     TasaAsignada[]
   serviciosAsignados ServicioAsignado[]
   plantillas         Plantilla[]
   tramites           Tramite[]
@@ -108,16 +109,30 @@ model TramiteConfiguracion {
 
 model TasaConfiguracion {
   id                String   @id @default(cuid())
-  tramiteConfigId   String
-  tramiteConfig     TramiteConfiguracion @relation(fields: [tramiteConfigId], references: [id], onDelete: Cascade)
   nombre            String
   importe           Float
+  categoriaId       String?
+  categoria         CategoriasTramite? @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  @@unique([tramiteConfigId, nombre])
-  @@index([tramiteConfigId])
+  asignaciones      TasaAsignada[]
+
+  @@index([categoriaId])
   @@map("tasas_configuracion")
+}
+
+model TasaAsignada {
+  id                String   @id @default(cuid())
+  tasaId            String
+  tasa              TasaConfiguracion @relation(fields: [tasaId], references: [id], onDelete: Cascade)
+  tramiteConfigId   String
+  tramiteConfig     TramiteConfiguracion @relation(fields: [tramiteConfigId], references: [id], onDelete: Cascade)
+  createdAt         DateTime @default(now())
+
+  @@unique([tasaId, tramiteConfigId])
+  @@index([tramiteConfigId])
+  @@map("tasas_asignadas")
 }
 
 model Tasa {

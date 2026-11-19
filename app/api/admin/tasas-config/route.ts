@@ -12,32 +12,37 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    // Get all tramites config first
-    const tramites = await db.tramiteConfiguracion.findMany()
+    const tipoTramite = req.nextUrl.searchParams.get('tipoTramite')
 
-    // Get all tasas config
-    const tasas = await db.tasaConfiguracion.findMany({
-      include: { tramiteConfig: true },
-    })
-
-    // Group tasas by tipoTramite
-    const tasasGrouped: Record<string, any[]> = {}
-    tasas.forEach((tasa) => {
-      const tipoTramite = tasa.tramiteConfig?.tipoTramite || 'unknown'
-      if (!tasasGrouped[tipoTramite]) {
-        tasasGrouped[tipoTramite] = []
-      }
-      tasasGrouped[tipoTramite].push({
-        id: tasa.id,
-        nombre: tasa.nombre,
-        importe: tasa.importe,
-        tramiteConfigId: tasa.tramiteConfigId,
+    if (tipoTramite) {
+      const asignaciones = await db.tasaAsignada.findMany({
+        where: { tramiteConfig: { tipoTramite } },
+        include: { tasa: true },
+        orderBy: { tasa: { nombre: 'asc' } },
       })
-    })
+      return NextResponse.json({
+        tasasConfig: {
+          [tipoTramite]: asignaciones.map((a) => ({
+            id: a.tasa.id,
+            nombre: a.tasa.nombre,
+            importe: a.tasa.importe,
+          })),
+        },
+      })
+    }
 
+    const tasas = await db.tasaConfiguracion.findMany({
+      include: { asignaciones: { select: { tramiteConfigId: true } } },
+      orderBy: { nombre: 'asc' },
+    })
     return NextResponse.json({
-      tasasConfig: tasasGrouped,
-      tramites: tramites.map(t => ({ tipoTramite: t.tipoTramite, nombre: t.nombre }))
+      tasas: tasas.map((t) => ({
+        id: t.id,
+        nombre: t.nombre,
+        importe: t.importe,
+        categoriaId: t.categoriaId,
+        tramiteConfigIds: t.asignaciones.map((a) => a.tramiteConfigId),
+      })),
     })
   } catch (error) {
     console.error('Error fetching tasas:', error)
@@ -53,48 +58,23 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-
-    // Validate required fields
-    if (!body.tramiteConfigId || !body.nombre || body.importe === undefined) {
+    if (!body.categoriaId || !body.nombre?.trim() || body.importe === undefined) {
       return NextResponse.json(
-        { error: 'tramiteConfigId, nombre e importe son requeridos' },
+        { error: 'categoriaId, nombre e importe son requeridos' },
         { status: 400 }
       )
     }
 
-    // Ensure importe is a number
-    const data = {
-      ...body,
-      importe: parseFloat(body.importe),
-    }
-
     const tasa = await db.tasaConfiguracion.create({
-      data,
+      data: {
+        nombre: body.nombre.trim(),
+        importe: parseFloat(body.importe),
+        categoriaId: body.categoriaId,
+      },
     })
-
-    return NextResponse.json(tasa)
+    return NextResponse.json(tasa, { status: 201 })
   } catch (error: any) {
     console.error('Error creating tasa:', error)
-    return NextResponse.json({ error: error?.message || 'Error interno' }, { status: 500 })
-  }
-}
-
-export async function PATCH(req: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions)
-    if (!session) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
-
-    const body = await req.json()
-    const tasa = await db.tasaConfiguracion.update({
-      where: { id: body.id },
-      data: body,
-    })
-
-    return NextResponse.json(tasa)
-  } catch (error) {
-    console.error('Error updating tasa:', error)
-    return NextResponse.json({ error: 'Error interno' }, { status: 500 })
+    return NextResponse.json({ error: 'Error al crear la tasa' }, { status: 500 })
   }
 }
